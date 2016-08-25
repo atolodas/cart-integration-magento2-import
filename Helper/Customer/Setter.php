@@ -83,7 +83,6 @@ class Setter
             $magentoCustomer->setPassword($pass);
 
             $this->utility->setBasicData($magentoCustomer, $customer);
-            $this->utility->addCustomFields($magentoCustomer, $customer);
             $this->utility->setAddressData($magentoCustomer, $customer);
         } catch (AlreadyExistsException $e) {
             throw new ShopgateLibraryException(ShopgateLibraryException::REGISTER_USER_ALREADY_EXISTS);
