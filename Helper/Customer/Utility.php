@@ -25,6 +25,48 @@
 
 namespace Shopgate\Import\Helper\Customer;
 
+use Magento\Customer\Api\Data\AddressInterface;
+use Magento\Directory\Model\Region;
+use ShopgateAddress;
+
 class Utility extends \Shopgate\Base\Helper\Customer\Utility
 {
+
+    /**
+     * @param AddressInterface $magentoAddress
+     * @param ShopgateAddress  $shopgateAddress
+     *
+     * @return AddressInterface
+     */
+    public function convertToMagentoAddress($magentoAddress, $shopgateAddress)
+    {
+        $magentoAddress->setFirstname($shopgateAddress->getFirstName());
+        $magentoAddress->setLastname($shopgateAddress->getLastName());
+        $magentoAddress->setCompany($shopgateAddress->getCompany());
+        $magentoAddress->setStreet($shopgateAddress->getStreet1());
+        $magentoAddress->setCity($shopgateAddress->getCity());
+        $magentoAddress->setPostcode($shopgateAddress->getZipcode());
+        $magentoAddress->setCountryId($shopgateAddress->getCountry());
+
+        if ($phoneNumber = $shopgateAddress->getPhone()) {
+            $magentoAddress->setTelephone($phoneNumber);
+        } elseif ($phoneNumber = $shopgateAddress->getMobile()) {
+            $magentoAddress->setTelephone($phoneNumber);
+        }
+
+        if ($shopgateAddress->getState()) {
+            /** @var Region $regionItem */
+            $regionItem = $this->countryFactory
+                ->create()
+                ->getRegionCollection()
+                ->addCountryFilter($shopgateAddress->getCountry())
+                ->addRegionCodeFilter($shopgateAddress->getState())
+                ->getFirstItem();
+            if ($regionItem->getId()) {
+                $magentoAddress->setRegion($regionItem->getId());
+            }
+        }
+
+        return $magentoAddress;
+    }
 }

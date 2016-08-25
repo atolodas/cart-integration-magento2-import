@@ -25,24 +25,143 @@
 
 namespace Shopgate\Import\Helper\Customer;
 
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Model\AddressFactory;
+use Magento\Customer\Model\CustomerFactory;
+use Magento\Customer\Model\Data\Address;
+use Magento\Customer\Model\Data\Customer;
+use Magento\Framework\Exception\AlreadyExistsException;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Store\Model\StoreManagerInterface;
+use ShopgateAddress;
 use ShopgateCustomer;
+use ShopgateLibraryException;
 
 class Setter
 {
     /**
+     * @var StoreManagerInterface
+     */
+    protected $storeManager;
+
+    /**
+     * @var CustomerFactory
+     */
+    protected $customerFactory;
+
+    /**
+     * @var Utility
+     */
+    protected $utility;
+
+    /**
+     * @var AddressFactory
+     */
+    protected $addressFactory;
+
+    /**
+     * Setter constructor.
+     *
+     * @param StoreManagerInterface $storeManager
+     * @param CustomerFactory       $customerFactory
+     * @param AddressFactory        $addressFactory
+     * @param Utility               $utility
+     */
+    public function __construct(
+        StoreManagerInterface $storeManager,
+        CustomerFactory $customerFactory,
+        AddressFactory $addressFactory,
+        Utility $utility
+
+    ) {
+        $this->storeManager    = $storeManager;
+        $this->customerFactory = $customerFactory;
+        $this->addressFactory  = $addressFactory;
+        $this->utility         = $utility;
+    }
+
+    /**
      * @param string           $user
      * @param string           $pass
      * @param ShopgateCustomer $customer
+     *
+     * @throws ShopgateLibraryException
      */
     public function registerCustomer($user, $pass, ShopgateCustomer $customer)
     {
-        //todo-alexander: implement register customer call
+        try {
+            $websiteId = $this->storeManager->getStore()->getWebsiteId();
+            /** @var Customer $magentoCustomer */
+            $magentoCustomer = $this->customerFactory->create();
 
-        /**
-         * You can implement all the shared logic in either Import Utility (if import specific) or Base Utility(general)
-         *
-         * @see Shopgate\Base\Helper\Customer\Utility
-         * @see Shopgate\Import\Helper\Customer\Utility - extends base
-         */
+            $magentoCustomer->setWebsiteId($websiteId);
+            $magentoCustomer->setEmail($user);
+            $magentoCustomer->setPassword($pass);
+
+            $this->setBasicData($magentoCustomer, $customer);
+            $this->addCustomFields($magentoCustomer, $customer);
+            $this->setAddressData($magentoCustomer, $customer);
+        } catch (AlreadyExistsException $e) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::REGISTER_USER_ALREADY_EXISTS);
+        } catch (LocalizedException $e) {
+            throw new ShopgateLibraryException(ShopgateLibraryException::UNKNOWN_ERROR_CODE, $e->getMessage(), true);
+        }
+    }
+
+    /**
+     * @param Customer         $magentoCustomer
+     * @param ShopgateCustomer $customer
+     */
+    protected function setBasicData($magentoCustomer, $customer)
+    {
+        $magentoCustomer->setConfirmation(null);
+        $magentoCustomer->setFirstname($customer->getFirstName());
+        $magentoCustomer->setLastname($customer->getLastName());
+        $magentoCustomer->setGender($this->utility->getMagentoGender($customer->getGender()));
+        $magentoCustomer->setDob($customer->getBirthday());
+        $magentoCustomer->save();
+    }
+
+    /**
+     * @param Customer         $magentoCustomer
+     * @param ShopgateCustomer $customer
+     */
+    protected function setAddressData($magentoCustomer, $customer)
+    {
+        foreach ($customer->getAddresses() as $shopgateAddress) {
+
+            /** @var Address $magentoAddress */
+            $magentoAddress = $this->addressFactory->create();
+            $magentoAddress->setCustomerId($magentoCustomer->getId());
+            $magentoAddress = $this->utility->convertToMagentoAddress($magentoAddress, $shopgateAddress);
+            $magentoAddress->save();
+
+            if ($shopgateAddress->getIsDeliveryAddress() && !$magentoCustomer->getDefaultShipping()) {
+                $magentoCustomer->setDefaultShipping($magentoAddress->getId());
+                $magentoCustomer->save();
+            }
+
+            if ($shopgateAddress->getIsInvoiceAddress() && !$magentoCustomer->getDefaultBilling()) {
+                $magentoCustomer->setDefaultBilling($magentoAddress->getId());
+                $magentoCustomer->save();
+            }
+
+            $this->addCustomFields($magentoAddress, $shopgateAddress);
+        }
+    }
+
+    /**
+     * @param Address | Customer                 $magentoObject
+     * @param ShopgateAddress | ShopgateCustomer $shopgateObject
+     */
+    protected function addCustomFields($magentoObject, $shopgateObject)
+    {
+        if (count($shopgateObject->getCustomFields()) > 0) {
+            foreach ($shopgateObject->getCustomFields() as $field) {
+                $magentoObject->setData($field->getInternalFieldName(), $field->getValue());
+            }
+
+            $magentoObject->save();
+        }
     }
 }
