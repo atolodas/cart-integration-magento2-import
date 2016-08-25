@@ -26,33 +26,103 @@
 namespace Shopgate\Import\Helper\Customer;
 
 use Magento\Customer\Api\Data\AddressInterface;
+use Magento\Customer\Model\Address;
+use Magento\Customer\Model\AddressFactory;
+use Magento\Customer\Model\Customer;
+use Magento\Customer\Model\Data\Customer as DataCustomer;
+use Magento\Customer\Model\ResourceModel\Group\Collection as GroupCollection;
+use Magento\Directory\Model\CountryFactory;
 use Magento\Directory\Model\Region;
+use Magento\Tax\Model\ResourceModel\TaxClass\Collection as TaxClassCollection;
 use ShopgateAddress;
+use ShopgateCustomer;
 
 class Utility extends \Shopgate\Base\Helper\Customer\Utility
 {
+    /** @var AddressFactory */
+    private $addressFactory;
 
     /**
-     * @param AddressInterface $magentoAddress
-     * @param ShopgateAddress  $shopgateAddress
+     * @param GroupCollection    $customerGroupCollection
+     * @param TaxClassCollection $taxCollection
+     * @param CountryFactory     $countryFactory
+     * @param AddressFactory     $addressFactory
+     */
+    public function __construct(
+        GroupCollection $customerGroupCollection,
+        TaxClassCollection $taxCollection,
+        CountryFactory $countryFactory,
+        AddressFactory $addressFactory
+    ) {
+        $this->addressFactory = $addressFactory;
+        parent::__construct($customerGroupCollection, $taxCollection, $countryFactory);
+    }
+
+    /**
+     * @param Customer | DataCustomer $magentoCustomer
+     * @param ShopgateCustomer        $customer
+     *
+     * @throws \Exception
+     */
+    public function setBasicData($magentoCustomer, $customer)
+    {
+        $magentoCustomer->setConfirmation(null);
+        $magentoCustomer->setFirstname($customer->getFirstName());
+        $magentoCustomer->setLastname($customer->getLastName());
+        $magentoCustomer->setGender($this->getMagentoGender($customer->getGender()));
+        $magentoCustomer->setDob($customer->getBirthday());
+        $magentoCustomer->save();
+    }
+
+    /**
+     * @param Customer | DataCustomer $magentoCustomer
+     * @param ShopgateCustomer        $customer
+     *
+     * @throws \Exception
+     */
+    public function setAddressData($magentoCustomer, $customer)
+    {
+        foreach ($customer->getAddresses() as $shopgateAddress) {
+            /** @var Address $magentoAddress */
+            $magentoAddress = $this->addressFactory->create();
+            $magentoAddress->setCustomerId($magentoCustomer->getId());
+            $magentoAddress = $this->convertToMagentoAddress($magentoAddress, $shopgateAddress);
+            $magentoAddress->save();
+
+            if ($shopgateAddress->getIsDeliveryAddress() && !$magentoCustomer->getDefaultShipping()) {
+                $magentoCustomer->setDefaultShipping($magentoAddress->getId());
+                $magentoCustomer->save();
+            }
+
+            if ($shopgateAddress->getIsInvoiceAddress() && !$magentoCustomer->getDefaultBilling()) {
+                $magentoCustomer->setDefaultBilling($magentoAddress->getId());
+                $magentoCustomer->save();
+            }
+
+            $this->addCustomFields($magentoAddress, $shopgateAddress);
+        }
+    }
+
+    /**
+     * @param AddressInterface | Address $magentoAddress
+     * @param ShopgateAddress            $shopgateAddress
      *
      * @return AddressInterface
      */
     public function convertToMagentoAddress($magentoAddress, $shopgateAddress)
     {
+        $street2     = $shopgateAddress->getStreet2() ? "\n" . $shopgateAddress->getStreet2() : '';
+        $phoneNumber = $shopgateAddress->getPhone() ? : $shopgateAddress->getMobile();
+        $phoneNumber = $phoneNumber ? : 'n.a';
+
         $magentoAddress->setFirstname($shopgateAddress->getFirstName());
         $magentoAddress->setLastname($shopgateAddress->getLastName());
         $magentoAddress->setCompany($shopgateAddress->getCompany());
-        $magentoAddress->setStreet($shopgateAddress->getStreet1());
+        $magentoAddress->setStreet($shopgateAddress->getStreet1() . $street2);
         $magentoAddress->setCity($shopgateAddress->getCity());
         $magentoAddress->setPostcode($shopgateAddress->getZipcode());
         $magentoAddress->setCountryId($shopgateAddress->getCountry());
-
-        if ($phoneNumber = $shopgateAddress->getPhone()) {
-            $magentoAddress->setTelephone($phoneNumber);
-        } elseif ($phoneNumber = $shopgateAddress->getMobile()) {
-            $magentoAddress->setTelephone($phoneNumber);
-        }
+        $magentoAddress->setTelephone($phoneNumber);
 
         if ($shopgateAddress->getState()) {
             /** @var Region $regionItem */
@@ -68,5 +138,21 @@ class Utility extends \Shopgate\Base\Helper\Customer\Utility
         }
 
         return $magentoAddress;
+    }
+
+    /**
+     * @param Address | Customer                 $magentoObject
+     * @param ShopgateAddress | ShopgateCustomer $shopgateObject
+     *
+     * @throws \Exception
+     */
+    public function addCustomFields($magentoObject, $shopgateObject)
+    {
+        if (count($shopgateObject->getCustomFields()) > 0) {
+            foreach ($shopgateObject->getCustomFields() as $field) {
+                $magentoObject->setData($field->getInternalFieldName(), $field->getValue());
+            }
+            $magentoObject->save();
+        }
     }
 }
