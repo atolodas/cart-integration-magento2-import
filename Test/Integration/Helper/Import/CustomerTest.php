@@ -24,11 +24,9 @@
 
 namespace Shopgate\Import\Test\Integration\Helper;
 
-use Magento\Customer\Model\AccountManagement;
 use Magento\Customer\Model\CustomerFactory;
-use Magento\Framework\App\Config\ScopePool;
-use Shopgate\Base\Test\Bootstrap;
-use Shopgate\Base\Test\Integration\Db\ConfigManager;
+use Magento\Store\Model\ScopeInterface;
+use Shopgate\Base\Api\Config\SgCoreInterface;
 use ShopgateAddress;
 use ShopgateCustomer;
 use ShopgateOrderCustomField;
@@ -38,27 +36,28 @@ use ShopgateOrderCustomField;
  */
 class CustomerTest extends \PHPUnit_Framework_TestCase
 {
+    const CUSTOMER_EMAIL = 'example@me.com';
+    const SHOP_NUMBER    = '12345';
+    const WEBSITE_ID     = '1';
+
     /** @var CustomerFactory */
     protected $customerFactory;
-    /** @var ConfigManager */
+    /** @var \Shopgate\Base\Test\Integration\Db\ConfigManager */
     protected $cfgManager;
     /** @var \Magento\Customer\Model\Customer[] */
     protected $customers;
     /** @var \Shopgate\Import\Model\Service\Import */
     private $importClass;
-    /** @var  ScopePool */
-    protected $scopePool;
 
     /**
      * Load object manager for initialization
      */
     public function setUp()
     {
-        $objectManager         = Bootstrap::getObjectManager();
-        $this->cfgManager      = new ConfigManager;
+        $objectManager         = \Shopgate\Base\Test\Bootstrap::getObjectManager();
+        $this->cfgManager      = new \Shopgate\Base\Test\Integration\Db\ConfigManager;
         $this->importClass     = $objectManager->create('Shopgate\Import\Model\Service\Import');
         $this->customerFactory = $objectManager->create('Magento\Customer\Model\CustomerFactory');
-        $this->scopePool       = $objectManager->create('Magento\Framework\App\Config\ScopePool');
     }
 
     /**
@@ -69,19 +68,28 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
      */
     public function testRegisterCustomer()
     {
+        $shopNumber = '12345';
+        $this->cfgManager->setConfigValue(
+            SgCoreInterface::PATH_SHOP_NUMBER,
+            $shopNumber,
+            ScopeInterface::SCOPE_WEBSITES,
+            self::WEBSITE_ID
+        );
+
         /** @var ShopgateCustomer $shopgateInputCustomer */
         $shopgateInputCustomer = $this->createShopgateCustomer();
-
-        $shopgateOutputCustomer = $this->importClass->registerCustomer(
+        $this->importClass->registerCustomer(
             'register_customer',
-            '123456',
-            'example@me.com',
+            self::SHOP_NUMBER,
+            self::CUSTOMER_EMAIL,
             '123456kill',
             false,
             $shopgateInputCustomer->toArray()
         );
 
-        $this->assertTrue(is_object($shopgateOutputCustomer));
+        $customer = $this->customerFactory->create()->setWebsiteId(self::WEBSITE_ID)->loadByEmail(self::CUSTOMER_EMAIL);
+
+        $this->assertEquals(self::CUSTOMER_EMAIL, $customer->getEmail());
     }
 
     /**
@@ -94,8 +102,8 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
         /**
          * global data
          */
-        $customer->setFirstname('Max');
-        $customer->setLastname('Mustermann');
+        $customer->setFirstName('Max');
+        $customer->setLastName('Mustermann');
         $customer->setGender('Male');
         $customer->setBirthday('2000-02-02');
 
@@ -141,5 +149,22 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
         );
 
         return $customer;
+    }
+
+    /**
+     * Remove created object in test
+     *
+     * @throws \Exception
+     */
+    public function tearDown()
+    {
+        /** @var \Magento\Framework\Registry $registry */
+        $registry = \Shopgate\Base\Test\Bootstrap::getObjectManager()->get('\Magento\Framework\Registry');
+        $registry->register('isSecureArea', true, true);
+
+        $customer = $this->customerFactory->create()->setWebsiteId(self::WEBSITE_ID)->loadByEmail(self::CUSTOMER_EMAIL);
+        if ($customer->getId()) {
+            $customer->delete();
+        }
     }
 }

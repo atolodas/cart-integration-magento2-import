@@ -31,9 +31,7 @@ use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
  */
 class CustomerTest extends \PHPUnit_Framework_TestCase
 {
-    /**
-     * @var ObjectManager
-     */
+    /** @var ObjectManager */
     private $objectManager;
 
     /**
