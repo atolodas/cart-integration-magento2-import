@@ -3,4 +3,13 @@
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <preference for="Shopgate\Base\Api\ImportInterface" type="Shopgate\Import\Api\ImportInterface"/>
     <preference for="Shopgate\Import\Api\ImportInterface" type="Shopgate\Import\Model\Service\Import"/>
+    <type name="Shopgate\Import\Helper\Quote">
+        <arguments>
+            <argument name="quoteMethods" xsi:type="array">
+                <item name="items" xsi:type="string">items</item>
+                <item name="customer" xsi:type="string">customer</item>
+                <item name="external_coupons" xsi:type="string">external_coupons</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

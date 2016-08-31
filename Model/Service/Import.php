@@ -27,8 +27,10 @@ namespace Shopgate\Import\Model\Service;
 
 use Magento\Store\Model\StoreManagerInterface;
 use Shopgate\Base\Api\Config\SgCoreInterface;
+use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Import\Api\ImportInterface;
 use Shopgate\Import\Helper\Customer\Setter as CustomerSetter;
+use Shopgate\Import\Helper\Order\Setter as OrderSetter;
 use ShopgateCustomer;
 
 class Import implements ImportInterface
@@ -40,20 +42,30 @@ class Import implements ImportInterface
     private $config;
     /** @var StoreManagerInterface */
     private $storeManager;
+    /** @var Base */
+    private $order;
+    /** @var OrderSetter */
+    private $orderSetter;
 
     /**
      * @param CustomerSetter        $customerSetter
+     * @param OrderSetter           $orderSetter
      * @param SgCoreInterface       $config
      * @param StoreManagerInterface $storeManager
+     * @param Base                  $order
      */
     public function __construct(
         CustomerSetter $customerSetter,
+        OrderSetter $orderSetter,
         SgCoreInterface $config,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        Base $order
     ) {
         $this->customerSetter = $customerSetter;
         $this->config         = $config;
         $this->storeManager   = $storeManager;
+        $this->order          = $order;
+        $this->orderSetter    = $orderSetter;
     }
 
     /**
@@ -81,5 +93,27 @@ class Import implements ImportInterface
     public function registerCustomerRaw($user, $pass, ShopgateCustomer $customer)
     {
         $this->customerSetter->registerCustomer($user, $pass, $customer);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function addOrder($action, $shopNumber, $orderNumber, $traceId)
+    {
+        // todo-sg: implement library SG order request and feed it to addOrderRaw()
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function addOrderRaw($order)
+    {
+        $this->order->loadArray($order->toArray());
+        $mageOrder = $this->orderSetter->addOrder();
+
+        return [
+            'external_order_id'     => $mageOrder->getId(),
+            'external_order_number' => $mageOrder->getIncrementId()
+        ];
     }
 }
