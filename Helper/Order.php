@@ -23,13 +23,13 @@
  * @author Shopgate GmbH <interfaces@shopgate.com>
  */
 
-namespace Shopgate\Import\Helper\Order;
+namespace Shopgate\Import\Helper;
 
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
-use Shopgate\Import\Helper\Quote;
+use Shopgate\Import\Helper\Order\Utility;
 
-class Setter
+class Order
 {
 
     /** @var Utility */
@@ -40,23 +40,28 @@ class Setter
     private $log;
     /** @var Quote */
     private $quote;
+    /** @var array */
+    private $quoteMethods;
 
     /**
      * @param Utility           $utility
      * @param Base              $order
      * @param SgLoggerInterface $log
      * @param Quote             $quote
+     * @param array             $quoteMethods
      */
     public function __construct(
         Utility $utility,
         Base $order,
         SgLoggerInterface $log,
-        Quote $quote
+        Quote $quote,
+        array $quoteMethods = []
     ) {
-        $this->utility = $utility;
-        $this->order   = $order;
-        $this->log     = $log;
-        $this->quote   = $quote;
+        $this->utility      = $utility;
+        $this->order        = $order;
+        $this->log          = $log;
+        $this->quote        = $quote;
+        $this->quoteMethods = $quoteMethods;
     }
 
     /**
@@ -66,6 +71,6 @@ class Setter
     public function addOrder()
     {
         $orderNumber = $this->order->getOrderNumber();
-        $this->quote->load();
+        $this->quote->load($this->quoteMethods);
     }
 }

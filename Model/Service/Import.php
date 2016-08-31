@@ -30,7 +30,7 @@ use Shopgate\Base\Api\Config\SgCoreInterface;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Import\Api\ImportInterface;
 use Shopgate\Import\Helper\Customer\Setter as CustomerSetter;
-use Shopgate\Import\Helper\Order\Setter as OrderSetter;
+use Shopgate\Import\Helper\Order as OrderSetter;
 use ShopgateCustomer;
 
 class Import implements ImportInterface

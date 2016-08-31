@@ -26,53 +26,9 @@
 namespace Shopgate\Import\Helper;
 
 use Magento\Catalog\Model\Product as MageProduct;
-use Magento\Framework\Registry;
-use Magento\Quote\Model\CouponManagement;
 use Magento\Quote\Model\Quote as MageQuote;
-use Magento\Store\Model\StoreManagerInterface;
 use Magento\Tax\Helper\Data as Tax;
-use Shopgate\Base\Helper\Product\Utility;
-use Shopgate\Base\Helper\Quote\Customer;
-use Shopgate\Base\Model\Shopgate\Extended\Base;
-use Shopgate\Base\Model\Utility\SgLoggerInterface;
 
 class Quote extends \Shopgate\Base\Helper\Quote
 {
-    /**
-     * @param MageQuote             $quote
-     * @param Base                  $base
-     * @param SgLoggerInterface     $logger
-     * @param Utility               $productHelper
-     * @param Tax                   $taxData
-     * @param Customer              $quoteCustomer
-     * @param Registry              $coreRegistry
-     * @param StoreManagerInterface $storeManager
-     * @param CouponManagement      $couponManagement
-     * @param array                 $quoteMethods - di.xml loaded methods
-     */
-    public function __construct(
-        MageQuote $quote,
-        Base $base,
-        SgLoggerInterface $logger,
-        Utility $productHelper,
-        Tax $taxData,
-        Customer $quoteCustomer,
-        Registry $coreRegistry,
-        StoreManagerInterface $storeManager,
-        CouponManagement $couponManagement,
-        array $quoteMethods = []
-    ) {
-        parent::__construct(
-            $quote,
-            $base,
-            $logger,
-            $productHelper,
-            $taxData,
-            $quoteCustomer,
-            $coreRegistry,
-            $storeManager,
-            $couponManagement,
-            $quoteMethods
-        );
-    }
 }
