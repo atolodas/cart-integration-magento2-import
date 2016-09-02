@@ -26,9 +26,50 @@
 namespace Shopgate\Import\Helper;
 
 use Magento\Catalog\Model\Product as MageProduct;
+use Magento\Framework\DataObject;
 use Magento\Quote\Model\Quote as MageQuote;
+use Magento\Quote\Model\QuoteManagement;
 use Magento\Tax\Helper\Data as Tax;
 
 class Quote extends \Shopgate\Base\Helper\Quote
 {
+    /**
+     * Assigns Shopgate cart customer to quote
+     */
+    protected function setCustomer()
+    {
+        parent::setCustomer();
+
+        if ($this->sgBase->isGuest()) {
+            $this->quote->setCheckoutMethod(QuoteManagement::METHOD_GUEST);
+        }
+
+        $this->coreRegistry->register(
+            'rule_data',
+            new DataObject(
+                [
+                    'store_id'          => $this->storeManager->getStore()->getId(),
+                    'website_id'        => $this->storeManager->getWebsite()->getId(),
+                    'customer_group_id' => $this->quote->getCustomerGroupId()
+                ]
+            ),
+            true
+        );
+    }
+
+    /**
+     * Assigns shipping method to the quote
+     */
+    protected function setShipping()
+    { // TODO: set shopgate shipping method to quote
+       // $this->quote->getShippingAddress()->setShippingMethod('shopgate_fix');
+    }
+
+    /**
+     * Assigns shipping method to the quote
+     */
+    protected function setPayment()
+    {
+        // TODO: set shopgate payment method to quote
+    }
 }

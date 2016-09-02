@@ -25,7 +25,38 @@
 
 namespace Shopgate\Import\Helper\Order;
 
+use Shopgate\Base\Model\Shopgate\OrderFactory;
+use ShopgateLibraryException;
+
 class Utility
 {
+    /** @var OrderFactory */
+    protected $sgOrderFactory;
 
+    /**
+     * Utility constructor.
+     *
+     * @param OrderFactory $sgOrderFactory
+     */
+    public function __construct(
+        OrderFactory $sgOrderFactory
+    ) {
+        $this->sgOrderFactory = $sgOrderFactory;
+    }
+
+    /**
+     * @param $orderNumber
+     *
+     * @throws ShopgateLibraryException
+     */
+    public function checkOrderAlreadyExists($orderNumber)
+    {
+        $sgOrder = $this->sgOrderFactory->create()->load($orderNumber, 'shopgate_order_number');
+        if ($sgOrder->getId() !== null) {
+            throw new ShopgateLibraryException(
+                ShopgateLibraryException::PLUGIN_DUPLICATE_ORDER,
+                'orderId: ' . $orderNumber, true
+            );
+        }
+    }
 }

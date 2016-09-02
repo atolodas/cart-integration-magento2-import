@@ -28,6 +28,7 @@ namespace Shopgate\Import\Helper;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
 use Shopgate\Import\Helper\Order\Utility;
+use Magento\Quote\Api\CartManagementInterface;
 
 class Order
 {
@@ -42,35 +43,51 @@ class Order
     private $quote;
     /** @var array */
     private $quoteMethods;
+    /** @var CartManagementInterface */
+    private $quoteManagement;
 
     /**
-     * @param Utility           $utility
-     * @param Base              $order
-     * @param SgLoggerInterface $log
-     * @param Quote             $quote
-     * @param array             $quoteMethods
+     * Order constructor.
+     *
+     * @param Utility                 $utility
+     * @param Base                    $order
+     * @param SgLoggerInterface       $log
+     * @param Quote                   $quote
+     * @param CartManagementInterface $quoteManagement
+     * @param array                   $quoteMethods
      */
     public function __construct(
         Utility $utility,
         Base $order,
         SgLoggerInterface $log,
         Quote $quote,
+        CartManagementInterface $quoteManagement,
         array $quoteMethods = []
     ) {
-        $this->utility      = $utility;
-        $this->order        = $order;
-        $this->log          = $log;
-        $this->quote        = $quote;
-        $this->quoteMethods = $quoteMethods;
+        $this->utility         = $utility;
+        $this->order           = $order;
+        $this->log             = $log;
+        $this->quote           = $quote;
+        $this->quoteMethods    = $quoteMethods;
+        $this->quoteManagement = $quoteManagement;
     }
 
     /**
      * @return \Magento\Sales\Model\Order
+     *
      * @throws \Exception
+     * @throws \ShopgateLibraryException
      */
     public function addOrder()
     {
         $orderNumber = $this->order->getOrderNumber();
+        $this->log->debug('## Start to add new Order');
+        $this->log->debug('## Order-Number: ' . $orderNumber);
+
+        $this->utility->checkOrderAlreadyExists($orderNumber);
         $this->quote->load($this->quoteMethods);
+
+        return $this->quoteManagement->submit($this->quote->getMageQuote());
+        // return $this->quoteManagement->placeOrder($this->quote->getMageQuote()->getEntityId());
     }
 }
