@@ -25,10 +25,11 @@
 
 namespace Shopgate\Import\Helper;
 
+use Magento\Framework\Registry;
+use Magento\Quote\Api\CartManagementInterface;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
 use Shopgate\Import\Helper\Order\Utility;
-use Magento\Quote\Api\CartManagementInterface;
 
 class Order
 {
@@ -45,6 +46,8 @@ class Order
     private $quoteMethods;
     /** @var CartManagementInterface */
     private $quoteManagement;
+    /** @var Registry */
+    private $registry;
 
     /**
      * Order constructor.
@@ -54,6 +57,7 @@ class Order
      * @param SgLoggerInterface       $log
      * @param Quote                   $quote
      * @param CartManagementInterface $quoteManagement
+     * @param Registry                $registry
      * @param array                   $quoteMethods
      */
     public function __construct(
@@ -62,6 +66,7 @@ class Order
         SgLoggerInterface $log,
         Quote $quote,
         CartManagementInterface $quoteManagement,
+        Registry $registry,
         array $quoteMethods = []
     ) {
         $this->utility         = $utility;
@@ -70,6 +75,7 @@ class Order
         $this->quote           = $quote;
         $this->quoteMethods    = $quoteMethods;
         $this->quoteManagement = $quoteManagement;
+        $this->registry        = $registry;
     }
 
     /**
@@ -85,6 +91,8 @@ class Order
         $this->log->debug('## Order-Number: ' . $orderNumber);
 
         $this->utility->checkOrderAlreadyExists($orderNumber);
+        $this->log->debug('# Add shopgate order to Registry');
+        $this->registry->register('shopgate_order', $this->order);
         $this->quote->load($this->quoteMethods);
 
         return $this->quoteManagement->submit($this->quote->getMageQuote());
