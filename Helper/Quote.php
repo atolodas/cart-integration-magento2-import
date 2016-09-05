@@ -61,8 +61,11 @@ class Quote extends \Shopgate\Base\Helper\Quote
      * Assigns shipping method to the quote
      */
     protected function setShipping()
-    { // TODO: set shopgate shipping method to quote
-       // $this->quote->getShippingAddress()->setShippingMethod('shopgate_fix');
+    {
+        $this->quote->getShippingAddress()
+            ->setShippingMethod('shopgate_fix')
+            ->setCollectShippingRates(true);
+        $this->quote->collectTotals();
     }
 
     /**
