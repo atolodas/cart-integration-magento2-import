@@ -27,6 +27,7 @@ namespace Shopgate\Import\Helper;
 
 use Magento\Framework\Registry;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Sales\Model\OrderRepository;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
 use Shopgate\Import\Helper\Order\Utility;
@@ -48,6 +49,8 @@ class Order
     private $quoteManagement;
     /** @var Registry */
     private $registry;
+    /** @var OrderRepository */
+    private $orderRepository;
 
     /**
      * @param Utility                 $utility
@@ -56,6 +59,7 @@ class Order
      * @param Quote                   $quote
      * @param CartManagementInterface $quoteManagement
      * @param Registry                $registry
+     * @param OrderRepository         $orderRepository
      * @param array                   $quoteMethods
      */
     public function __construct(
@@ -65,6 +69,7 @@ class Order
         Quote $quote,
         CartManagementInterface $quoteManagement,
         Registry $registry,
+        OrderRepository $orderRepository,
         array $quoteMethods = []
     ) {
         $this->utility         = $utility;
@@ -74,6 +79,7 @@ class Order
         $this->quoteMethods    = $quoteMethods;
         $this->quoteManagement = $quoteManagement;
         $this->registry        = $registry;
+        $this->orderRepository = $orderRepository;
     }
 
     /**
@@ -92,8 +98,8 @@ class Order
         $this->log->debug('# Add shopgate order to Registry');
         $this->registry->register('shopgate_order', $this->order);
         $mageQuote = $this->quote->load($this->quoteMethods);
+        $orderId   = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
 
-        return $this->quoteManagement->submit($mageQuote);
-        // return $this->quoteManagement->placeOrder($this->quote->getMageQuote()->getEntityId());
+        return $this->orderRepository->get($orderId);
     }
 }
