@@ -6,8 +6,8 @@
     <type name="Shopgate\Import\Helper\Order">
         <arguments>
             <argument name="quoteMethods" xsi:type="array">
+                <item name="customer" xsi:type="string">customer</item><!-- before items for address saving -->
                 <item name="items" xsi:type="string">items</item>
-                <item name="customer" xsi:type="string">customer</item>
                 <item name="shipping" xsi:type="string">shipping</item>
                 <item name="payment" xsi:type="string">payment</item>
                 <item name="external_coupons" xsi:type="string">external_coupons</item>

@@ -50,8 +50,6 @@ class Order
     private $registry;
 
     /**
-     * Order constructor.
-     *
      * @param Utility                 $utility
      * @param Base                    $order
      * @param SgLoggerInterface       $log
@@ -93,8 +91,6 @@ class Order
         $this->utility->checkOrderAlreadyExists($orderNumber);
         $this->log->debug('# Add shopgate order to Registry');
         $this->registry->register('shopgate_order', $this->order);
-        $this->quote->load($this->quoteMethods);
-
         $mageQuote = $this->quote->load($this->quoteMethods);
 
         return $this->quoteManagement->submit($mageQuote);
