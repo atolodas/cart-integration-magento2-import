@@ -5,5 +5,10 @@
                 <title>Fixed</title>
             </order>
         </shopgate_import>
+        <payment>
+            <shopgate>
+                <active>1</active>
+            </shopgate>
+        </payment>
     </default>
 </config>

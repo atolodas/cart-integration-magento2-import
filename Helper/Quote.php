@@ -65,7 +65,6 @@ class Quote extends \Shopgate\Base\Helper\Quote
         $this->quote->getShippingAddress()
             ->setShippingMethod('shopgate_fix')
             ->setCollectShippingRates(true);
-        $this->quote->collectTotals();
     }
 
     /**
@@ -73,6 +72,7 @@ class Quote extends \Shopgate\Base\Helper\Quote
      */
     protected function setPayment()
     {
-        // TODO: set shopgate payment method to quote
+        // TODO: distinguish whether shopgate or mobile_payment should be used for current order
+        $this->quote->getPayment()->importData(['method' => 'shopgate']);
     }
 }

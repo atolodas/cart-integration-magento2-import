@@ -95,7 +95,9 @@ class Order
         $this->registry->register('shopgate_order', $this->order);
         $this->quote->load($this->quoteMethods);
 
-        return $this->quoteManagement->submit($this->quote->getMageQuote());
+        $mageQuote = $this->quote->load($this->quoteMethods);
+
+        return $this->quoteManagement->submit($mageQuote);
         // return $this->quoteManagement->placeOrder($this->quote->getMageQuote()->getEntityId());
     }
 }
