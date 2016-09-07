@@ -40,7 +40,7 @@ class Order
     /** @var Utility */
     private $utility;
     /** @var Base */
-    private $order;
+    private $sgOrder;
     /** @var SgLoggerInterface */
     private $log;
     /** @var Quote */
@@ -53,8 +53,8 @@ class Order
     private $registry;
     /** @var OrderRepository */
     private $orderRepository;
-    /** @var array */
-    private $orderMethods;
+    /** @var MageOrder */
+    private $mageOrder;
 
     /**
      * @param Utility                 $utility
@@ -64,8 +64,8 @@ class Order
      * @param CartManagementInterface $quoteManagement
      * @param Registry                $registry
      * @param OrderRepository         $orderRepository
+     * @param MageOrder               $mageOrder
      * @param array                   $quoteMethods
-     * @param array                   $orderMethods
      */
     public function __construct(
         Utility $utility,
@@ -75,66 +75,75 @@ class Order
         CartManagementInterface $quoteManagement,
         Registry $registry,
         OrderRepository $orderRepository,
-        array $quoteMethods = [],
-        array $orderMethods = []
+        MageOrder $mageOrder,
+        array $quoteMethods = []
     ) {
         $this->utility         = $utility;
-        $this->order           = $order;
+        $this->sgOrder         = $order;
         $this->log             = $log;
         $this->quote           = $quote;
         $this->quoteMethods    = $quoteMethods;
         $this->quoteManagement = $quoteManagement;
         $this->registry        = $registry;
         $this->orderRepository = $orderRepository;
-        $this->orderMethods    = $orderMethods;
+        $this->mageOrder       = $mageOrder;
     }
 
     /**
-     * @param MageOrder $mageOrder
+     * @param array $methods
+     *
+     * @return MageOrder
      */
-    public function load(MageOrder $mageOrder)
+    public function loadMethods(array $methods)
     {
-        foreach ($this->orderMethods as $rawMethod) {
+        foreach ($methods as $rawMethod) {
             $method = 'set' . SimpleDataObjectConverter::snakeCaseToUpperCamelCase($rawMethod);
             $this->log->debug('Starting method ' . $method);
-            $this->{$method}($mageOrder);
+            $this->{$method}();
             $this->log->debug('Finished method ' . $method);
         }
+
+        return $this->mageOrder;
     }
 
     /**
-     * @return \Magento\Sales\Model\Order
+     * Creates the order then we can continue loading on $this->mageOrder
      *
-     * @throws \Exception
+     * @throws \Magento\Framework\Exception\CouldNotSaveException
+     * @throws \Magento\Framework\Exception\InputException
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \ShopgateLibraryException
      */
-    public function addOrder()
+    public function setStartAdd()
     {
-        $orderNumber = $this->order->getOrderNumber();
+        $orderNumber = $this->sgOrder->getOrderNumber();
         $this->log->debug('## Start to add new Order');
         $this->log->debug('## Order-Number: ' . $orderNumber);
 
-        $this->utility->checkOrderAlreadyExists($orderNumber);
+        $this->utility->checkOrderExists($orderNumber);
         $this->log->debug('# Add shopgate order to Registry');
-        $this->registry->register('shopgate_order', $this->order);
-        $mageQuote = $this->quote->load($this->quoteMethods);
-        $orderId   = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
+        $this->registry->register('shopgate_order', $this->sgOrder);
 
-        $mageOrder = $this->orderRepository->get($orderId);
-        $this->load($mageOrder);
+        $mageQuote       = $this->quote->load($this->quoteMethods);
+        $orderId         = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
+        $this->mageOrder = $this->orderRepository->get($orderId);
+    }
 
-        return $this->orderRepository->get($orderId);
+    /**
+     * Executes after order is fully loaded
+     */
+    public function setEndAdd()
+    {
+        $this->orderRepository->save($this->mageOrder); //todo-sg: save at end unless necessary to save before
     }
 
     /**
      * Set correct order status by payment
-     *
-     * @param MageOrder $mageOrder
      */
-    protected function setOrderState(MageOrder $mageOrder)
+    protected function setOrderState()
     {
-        $orderStatus = $mageOrder->getPayment()->getMethodInstance()->getConfigData('order_status');
+        $orderStatus = $this->mageOrder->getPayment()->getMethodInstance()->getConfigData('order_status');
         $orderState  = $this->utility->getStateForStatus($orderStatus);
-        $mageOrder->setState($orderState)->setStatus($orderStatus)->save();
+        $this->mageOrder->setState($orderState)->setStatus($orderStatus);
     }
 }

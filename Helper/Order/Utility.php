@@ -37,8 +37,6 @@ class Utility
     private $statusCollectionFactory;
 
     /**
-     * Utility constructor.
-     *
      * @param OrderFactory            $sgOrderFactory
      * @param StatusCollectionFactory $statusCollectionFactory
      */
@@ -51,19 +49,25 @@ class Utility
     }
 
     /**
-     * @param $orderNumber
+     * @param string $orderNumber
+     * @param bool   $throwExceptionOnDuplicate
      *
+     * @return \Shopgate\Base\Model\Shopgate\Order
      * @throws ShopgateLibraryException
+     * @todo-sg: change from factory to repository pull
      */
-    public function checkOrderAlreadyExists($orderNumber)
+    public function checkOrderExists($orderNumber, $throwExceptionOnDuplicate = true)
     {
         $sgOrder = $this->sgOrderFactory->create()->load($orderNumber, 'shopgate_order_number');
-        if ($sgOrder->getId() !== null) {
+        if ($throwExceptionOnDuplicate && $sgOrder->getId() !== null) {
             throw new ShopgateLibraryException(
                 ShopgateLibraryException::PLUGIN_DUPLICATE_ORDER,
-                'orderId: ' . $orderNumber, true
+                'orderId: ' . $orderNumber,
+                true
             );
         }
+
+        return $sgOrder;
     }
 
     /**

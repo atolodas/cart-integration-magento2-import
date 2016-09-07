@@ -46,6 +46,8 @@ class Import implements ImportInterface
     private $order;
     /** @var OrderSetter */
     private $orderSetter;
+    /** @var array */
+    private $addOrderMethods;
 
     /**
      * @param CustomerSetter        $customerSetter
@@ -53,19 +55,22 @@ class Import implements ImportInterface
      * @param SgCoreInterface       $config
      * @param StoreManagerInterface $storeManager
      * @param Base                  $order
+     * @param array                 $addOrderMethods - methods loaded via DI.xml
      */
     public function __construct(
         CustomerSetter $customerSetter,
         OrderSetter $orderSetter,
         SgCoreInterface $config,
         StoreManagerInterface $storeManager,
-        Base $order
+        Base $order,
+        $addOrderMethods = []
     ) {
-        $this->customerSetter = $customerSetter;
-        $this->config         = $config;
-        $this->storeManager   = $storeManager;
-        $this->order          = $order;
-        $this->orderSetter    = $orderSetter;
+        $this->customerSetter  = $customerSetter;
+        $this->config          = $config;
+        $this->storeManager    = $storeManager;
+        $this->order           = $order;
+        $this->orderSetter     = $orderSetter;
+        $this->addOrderMethods = $addOrderMethods;
     }
 
     /**
@@ -98,18 +103,10 @@ class Import implements ImportInterface
     /**
      * @inheritdoc
      */
-    public function addOrder($action, $shopNumber, $orderNumber, $traceId)
-    {
-        // todo-sg: implement library SG order request and feed it to addOrderRaw()
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function addOrderRaw($order)
+    public function addOrder($order)
     {
         $this->order->loadArray($order->toArray());
-        $mageOrder = $this->orderSetter->addOrder();
+        $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
 
         return [
             'external_order_id'     => $mageOrder->getId(),

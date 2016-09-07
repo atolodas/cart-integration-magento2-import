@@ -12,9 +12,16 @@
                 <item name="payment" xsi:type="string">payment</item>
                 <item name="external_coupons" xsi:type="string">external_coupons</item>
             </argument>
-            <argument name="orderMethods" xsi:type="array">
+        </arguments>
+    </type>
+    <type name="Shopgate\Import\Model\Service\Import">
+        <arguments>
+            <argument name="addOrderMethods" xsi:type="array">
+                <item name="start_add" xsi:type="string">start_add</item><!-- must be first -->
                 <item name="order_state" xsi:type="string">order_state</item>
+                <item name="end_add" xsi:type="string">end_add</item><!-- must be last -->
             </argument>
+            <!-- Update order methods will be passed here as a second argument -->
         </arguments>
     </type>
 </config>
