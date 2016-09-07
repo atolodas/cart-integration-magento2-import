@@ -26,48 +26,19 @@
 namespace Shopgate\Import\Helper\Order;
 
 use Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory as StatusCollectionFactory;
-use Shopgate\Base\Model\Shopgate\OrderFactory;
-use ShopgateLibraryException;
 
 class Utility
 {
-    /** @var OrderFactory */
-    protected $sgOrderFactory;
     /** @var StatusCollectionFactory */
     private $statusCollectionFactory;
 
     /**
-     * @param OrderFactory            $sgOrderFactory
      * @param StatusCollectionFactory $statusCollectionFactory
      */
     public function __construct(
-        OrderFactory $sgOrderFactory,
         StatusCollectionFactory $statusCollectionFactory
     ) {
-        $this->sgOrderFactory          = $sgOrderFactory;
         $this->statusCollectionFactory = $statusCollectionFactory;
-    }
-
-    /**
-     * @param string $orderNumber
-     * @param bool   $throwExceptionOnDuplicate
-     *
-     * @return \Shopgate\Base\Model\Shopgate\Order
-     * @throws ShopgateLibraryException
-     * @todo-sg: change from factory to repository pull
-     */
-    public function checkOrderExists($orderNumber, $throwExceptionOnDuplicate = true)
-    {
-        $sgOrder = $this->sgOrderFactory->create()->load($orderNumber, 'shopgate_order_number');
-        if ($throwExceptionOnDuplicate && $sgOrder->getId() !== null) {
-            throw new ShopgateLibraryException(
-                ShopgateLibraryException::PLUGIN_DUPLICATE_ORDER,
-                'orderId: ' . $orderNumber,
-                true
-            );
-        }
-
-        return $sgOrder;
     }
 
     /**

@@ -30,6 +30,7 @@ use Magento\Framework\Registry;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderRepository;
+use Shopgate\Base\Api\OrderRepositoryInterface;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
 use Shopgate\Import\Helper\Order\Utility;
@@ -55,17 +56,20 @@ class Order
     private $orderRepository;
     /** @var MageOrder */
     private $mageOrder;
+    /** @var OrderRepositoryInterface */
+    private $sgOrderRepository;
 
     /**
-     * @param Utility                 $utility
-     * @param Base                    $order
-     * @param SgLoggerInterface       $log
-     * @param Quote                   $quote
-     * @param CartManagementInterface $quoteManagement
-     * @param Registry                $registry
-     * @param OrderRepository         $orderRepository
-     * @param MageOrder               $mageOrder
-     * @param array                   $quoteMethods
+     * @param Utility                  $utility
+     * @param Base                     $order
+     * @param SgLoggerInterface        $log
+     * @param Quote                    $quote
+     * @param CartManagementInterface  $quoteManagement
+     * @param Registry                 $registry
+     * @param OrderRepository          $orderRepository
+     * @param MageOrder                $mageOrder
+     * @param OrderRepositoryInterface $sgOrderRepository
+     * @param array                    $quoteMethods
      */
     public function __construct(
         Utility $utility,
@@ -76,17 +80,19 @@ class Order
         Registry $registry,
         OrderRepository $orderRepository,
         MageOrder $mageOrder,
+        OrderRepositoryInterface $sgOrderRepository,
         array $quoteMethods = []
     ) {
-        $this->utility         = $utility;
-        $this->sgOrder         = $order;
-        $this->log             = $log;
-        $this->quote           = $quote;
-        $this->quoteMethods    = $quoteMethods;
-        $this->quoteManagement = $quoteManagement;
-        $this->registry        = $registry;
-        $this->orderRepository = $orderRepository;
-        $this->mageOrder       = $mageOrder;
+        $this->utility           = $utility;
+        $this->sgOrder           = $order;
+        $this->log               = $log;
+        $this->quote             = $quote;
+        $this->quoteMethods      = $quoteMethods;
+        $this->quoteManagement   = $quoteManagement;
+        $this->registry          = $registry;
+        $this->orderRepository   = $orderRepository;
+        $this->mageOrder         = $mageOrder;
+        $this->sgOrderRepository = $sgOrderRepository;
     }
 
     /**
@@ -96,6 +102,7 @@ class Order
      */
     public function loadMethods(array $methods)
     {
+        //todo-sg: implement rollback as failures will trash the database
         foreach ($methods as $rawMethod) {
             $method = 'set' . SimpleDataObjectConverter::snakeCaseToUpperCamelCase($rawMethod);
             $this->log->debug('Starting method ' . $method);
@@ -120,7 +127,7 @@ class Order
         $this->log->debug('## Start to add new Order');
         $this->log->debug('## Order-Number: ' . $orderNumber);
 
-        $this->utility->checkOrderExists($orderNumber);
+        $this->sgOrderRepository->checkOrderExists($orderNumber, true);
         $this->log->debug('# Add shopgate order to Registry');
         $this->registry->register('shopgate_order', $this->sgOrder);
 
@@ -135,6 +142,7 @@ class Order
     public function setEndAdd()
     {
         $this->orderRepository->save($this->mageOrder); //todo-sg: save at end unless necessary to save before
+        $this->sgOrderRepository->createAndSave($this->mageOrder->getId());
     }
 
     /**
