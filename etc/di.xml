@@ -12,6 +12,9 @@
                 <item name="payment" xsi:type="string">payment</item>
                 <item name="external_coupons" xsi:type="string">external_coupons</item>
             </argument>
+            <argument name="orderMethods" xsi:type="array">
+                <item name="order_state" xsi:type="string">order_state</item>
+            </argument>
         </arguments>
     </type>
 </config>

@@ -25,6 +25,7 @@
 
 namespace Shopgate\Import\Helper\Order;
 
+use Magento\Sales\Model\ResourceModel\Order\Status\CollectionFactory as StatusCollectionFactory;
 use Shopgate\Base\Model\Shopgate\OrderFactory;
 use ShopgateLibraryException;
 
@@ -32,16 +33,21 @@ class Utility
 {
     /** @var OrderFactory */
     protected $sgOrderFactory;
+    /** @var StatusCollectionFactory */
+    private $statusCollectionFactory;
 
     /**
      * Utility constructor.
      *
-     * @param OrderFactory $sgOrderFactory
+     * @param OrderFactory            $sgOrderFactory
+     * @param StatusCollectionFactory $statusCollectionFactory
      */
     public function __construct(
-        OrderFactory $sgOrderFactory
+        OrderFactory $sgOrderFactory,
+        StatusCollectionFactory $statusCollectionFactory
     ) {
-        $this->sgOrderFactory = $sgOrderFactory;
+        $this->sgOrderFactory          = $sgOrderFactory;
+        $this->statusCollectionFactory = $statusCollectionFactory;
     }
 
     /**
@@ -58,5 +64,23 @@ class Utility
                 'orderId: ' . $orderNumber, true
             );
         }
+    }
+
+    /**
+     * Returns the state for the given status
+     *
+     * @param string $status
+     *
+     * @return string
+     */
+    public function getStateForStatus($status)
+    {
+        $statusCollection = $this->statusCollectionFactory->create();
+        $statusCollection->joinStates();
+        $statusCollection->getSelect()->where('state_table.status=?', $status);
+        $statusCollection->getSelect()->where('state_table.is_default=?', 1);
+        $state = $statusCollection->getFirstItem();
+
+        return $state->getData('state');
     }
 }

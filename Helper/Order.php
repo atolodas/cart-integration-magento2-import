@@ -25,8 +25,10 @@
 
 namespace Shopgate\Import\Helper;
 
+use Magento\Framework\Api\SimpleDataObjectConverter;
 use Magento\Framework\Registry;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderRepository;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
@@ -51,6 +53,8 @@ class Order
     private $registry;
     /** @var OrderRepository */
     private $orderRepository;
+    /** @var array */
+    private $orderMethods;
 
     /**
      * @param Utility                 $utility
@@ -61,6 +65,7 @@ class Order
      * @param Registry                $registry
      * @param OrderRepository         $orderRepository
      * @param array                   $quoteMethods
+     * @param array                   $orderMethods
      */
     public function __construct(
         Utility $utility,
@@ -70,7 +75,8 @@ class Order
         CartManagementInterface $quoteManagement,
         Registry $registry,
         OrderRepository $orderRepository,
-        array $quoteMethods = []
+        array $quoteMethods = [],
+        array $orderMethods = []
     ) {
         $this->utility         = $utility;
         $this->order           = $order;
@@ -80,6 +86,20 @@ class Order
         $this->quoteManagement = $quoteManagement;
         $this->registry        = $registry;
         $this->orderRepository = $orderRepository;
+        $this->orderMethods    = $orderMethods;
+    }
+
+    /**
+     * @param MageOrder $mageOrder
+     */
+    public function load(MageOrder $mageOrder)
+    {
+        foreach ($this->orderMethods as $rawMethod) {
+            $method = 'set' . SimpleDataObjectConverter::snakeCaseToUpperCamelCase($rawMethod);
+            $this->log->debug('Starting method ' . $method);
+            $this->{$method}($mageOrder);
+            $this->log->debug('Finished method ' . $method);
+        }
     }
 
     /**
@@ -100,6 +120,21 @@ class Order
         $mageQuote = $this->quote->load($this->quoteMethods);
         $orderId   = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
 
+        $mageOrder = $this->orderRepository->get($orderId);
+        $this->load($mageOrder);
+
         return $this->orderRepository->get($orderId);
+    }
+
+    /**
+     * Set correct order status by payment
+     *
+     * @param MageOrder $mageOrder
+     */
+    protected function setOrderState(MageOrder $mageOrder)
+    {
+        $orderStatus = $mageOrder->getPayment()->getMethodInstance()->getConfigData('order_status');
+        $orderState  = $this->utility->getStateForStatus($orderStatus);
+        $mageOrder->setState($orderState)->setStatus($orderStatus)->save();
     }
 }
