@@ -75,7 +75,7 @@ class Order
      * @param Registry                 $registry
      * @param OrderRepository          $orderRepository
      * @param MageOrder                $mageOrder
-     * @param OrderRepositoryInterface $sgOrderRepository *
+     * @param OrderRepositoryInterface $sgOrderRepository
      * @param CoreInterface            $config
      * @param OrderNotifier            $orderNotifier
      * @param array                    $quoteMethods
@@ -153,7 +153,7 @@ class Order
      */
     public function setEndAdd()
     {
-        $this->orderRepository->save($this->mageOrder); //todo-sg: save at end unless necessary to save before
+        $this->orderRepository->save($this->mageOrder);
         $this->sgOrderRepository->createAndSave($this->mageOrder->getId());
     }
 
@@ -172,10 +172,10 @@ class Order
      */
     protected function setOrderStatusHistory()
     {
-        $this->mageOrder->addStatusHistoryComment(__("[SHOPGATE] Order added by Shopgate."), false)
+        $this->mageOrder->addStatusHistoryComment(__('[SHOPGATE] Order added by Shopgate.')->getText(), false)
                         ->setIsCustomerNotified(false);
         $this->mageOrder->addStatusHistoryComment(
-            __("[SHOPGATE] Shopgate order number: %s", $this->sgOrder->getOrderNumber()),
+            __("[SHOPGATE] Shopgate order number: %s", $this->sgOrder->getOrderNumber())->getText(),
             false
         )->setIsCustomerNotified(false);
     }
@@ -187,12 +187,10 @@ class Order
      */
     protected function setOrderPayment()
     {
-        if ($this->sgOrder->getIsPaid()
-            && $this->mageOrder->getBaseTotalDue()
-        ) {
+        if ($this->sgOrder->getIsPaid() && $this->mageOrder->getBaseTotalDue()) {
             $this->mageOrder->getPayment()->setShouldCloseParentTransaction(true);
             $this->mageOrder->getPayment()->registerCaptureNotification($this->sgOrder->getAmountComplete());
-            $this->mageOrder->addStatusHistoryComment(__("[SHOPGATE] Payment received."), false)
+            $this->mageOrder->addStatusHistoryComment(__('[SHOPGATE] Payment received.')->getText(), false)
                             ->setIsCustomerNotified(false);
         }
     }
@@ -212,6 +210,7 @@ class Order
      */
     protected function setOrderNotification()
     {
+        $this->mageOrder->setEmailSent(0);
         if ($this->config->getConfigByPath(ImportService::PATH_SEND_NEW_ORDER_MAIL)->getValue()) {
             $this->log->debug('# Notified customer about new order');
             $this->orderNotifier->notify($this->mageOrder);
