@@ -72,7 +72,7 @@ class Quote extends \Shopgate\Base\Helper\Quote
      */
     protected function setPayment()
     {
-        // TODO: distinguish whether shopgate or mobile_payment should be used for current order
         $this->quote->getPayment()->importData(['method' => 'shopgate']);
+        $this->quote->getPayment()->setParentTransactionId($this->sgBase->getPaymentTransactionNumber());
     }
 }
