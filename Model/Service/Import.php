@@ -36,11 +36,6 @@ use ShopgateCustomer;
 
 class Import implements ImportInterface
 {
-    const SECTION_IMPORT           = 'shopgate_import';
-    const PATH_ORDER               = self::SECTION_IMPORT . '/order';
-    const PATH_SHIPPING_TITLE      = self::PATH_ORDER . '/shipping_title';
-    const PATH_SEND_NEW_ORDER_MAIL = self::PATH_ORDER . '/send_new_order_mail';
-    const PATH_NEW_ORDER_STATUS    = 'payment/shopgate/order_status';
 
     /** @var CustomerSetter */
     private $customerSetter;
