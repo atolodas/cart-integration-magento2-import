@@ -2,7 +2,8 @@
     <default>
         <shopgate_import>
             <order>
-                <title>Fixed</title>
+                <shipping_title>Fixed</shipping_title>
+                <send_new_order_mail>0</send_new_order_mail>
             </order>
         </shopgate_import>
         <payment>

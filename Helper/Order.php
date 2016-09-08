@@ -29,11 +29,14 @@ use Magento\Framework\Api\SimpleDataObjectConverter;
 use Magento\Framework\Registry;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Sales\Model\Order as MageOrder;
+use Magento\Sales\Model\OrderNotifier;
 use Magento\Sales\Model\OrderRepository;
+use Shopgate\Base\Api\Config\CoreInterface;
 use Shopgate\Base\Api\OrderRepositoryInterface;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
 use Shopgate\Import\Helper\Order\Utility;
+use Shopgate\Import\Model\Service\Import as ImportService;
 
 class Order
 {
@@ -58,6 +61,10 @@ class Order
     private $mageOrder;
     /** @var OrderRepositoryInterface */
     private $sgOrderRepository;
+    /** @var CoreInterface */
+    private $config;
+    /** @var OrderNotifier */
+    private $orderNotifier;
 
     /**
      * @param Utility                  $utility
@@ -68,7 +75,9 @@ class Order
      * @param Registry                 $registry
      * @param OrderRepository          $orderRepository
      * @param MageOrder                $mageOrder
-     * @param OrderRepositoryInterface $sgOrderRepository
+     * @param OrderRepositoryInterface $sgOrderRepository *
+     * @param CoreInterface            $config
+     * @param OrderNotifier            $orderNotifier
      * @param array                    $quoteMethods
      */
     public function __construct(
@@ -81,6 +90,8 @@ class Order
         OrderRepository $orderRepository,
         MageOrder $mageOrder,
         OrderRepositoryInterface $sgOrderRepository,
+        CoreInterface $config,
+        OrderNotifier $orderNotifier,
         array $quoteMethods = []
     ) {
         $this->utility           = $utility;
@@ -93,6 +104,8 @@ class Order
         $this->orderRepository   = $orderRepository;
         $this->mageOrder         = $mageOrder;
         $this->sgOrderRepository = $sgOrderRepository;
+        $this->config            = $config;
+        $this->orderNotifier     = $orderNotifier;
     }
 
     /**
@@ -102,7 +115,6 @@ class Order
      */
     public function loadMethods(array $methods)
     {
-        //todo-sg: implement rollback as failures will trash the database
         foreach ($methods as $rawMethod) {
             $method = 'set' . SimpleDataObjectConverter::snakeCaseToUpperCamelCase($rawMethod);
             $this->log->debug('Starting method ' . $method);
@@ -153,5 +165,56 @@ class Order
         $orderStatus = $this->mageOrder->getPayment()->getMethodInstance()->getConfigData('order_status');
         $orderState  = $this->utility->getStateForStatus($orderStatus);
         $this->mageOrder->setState($orderState)->setStatus($orderStatus);
+    }
+
+    /**
+     * Set order status history entries
+     */
+    protected function setOrderStatusHistory()
+    {
+        $this->mageOrder->addStatusHistoryComment(__("[SHOPGATE] Order added by Shopgate."), false)
+                        ->setIsCustomerNotified(false);
+        $this->mageOrder->addStatusHistoryComment(
+            __("[SHOPGATE] Shopgate order number: %s", $this->sgOrder->getOrderNumber()),
+            false
+        )->setIsCustomerNotified(false);
+    }
+
+    /**
+     * Manipulate payments according to payment method
+     *
+     * TODO: once we have factories, move it there
+     */
+    protected function setOrderPayment()
+    {
+        if ($this->sgOrder->getIsPaid()
+            && $this->mageOrder->getBaseTotalDue()
+        ) {
+            $this->mageOrder->getPayment()->setShouldCloseParentTransaction(true);
+            $this->mageOrder->getPayment()->registerCaptureNotification($this->sgOrder->getAmountComplete());
+            $this->mageOrder->addStatusHistoryComment(__("[SHOPGATE] Payment received."), false)
+                            ->setIsCustomerNotified(false);
+        }
+    }
+
+    /**
+     * Set shipping description from config
+     */
+    protected function setShippingDescription()
+    {
+        $this->mageOrder->setShippingDescription(
+            $this->config->getConfigByPath(ImportService::PATH_SHIPPING_TITLE)->getValue()
+        );
+    }
+
+    /**
+     * Send order notification if activated in config
+     */
+    protected function setOrderNotification()
+    {
+        if ($this->config->getConfigByPath(ImportService::PATH_SEND_NEW_ORDER_MAIL)->getValue()) {
+            $this->log->debug('# Notified customer about new order');
+            $this->orderNotifier->notify($this->mageOrder);
+        }
     }
 }

@@ -25,6 +25,7 @@
 
 namespace Shopgate\Import\Model\Service;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Store\Model\StoreManagerInterface;
 use Shopgate\Base\Api\Config\SgCoreInterface;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
@@ -35,6 +36,11 @@ use ShopgateCustomer;
 
 class Import implements ImportInterface
 {
+    const SECTION_IMPORT           = 'shopgate_import';
+    const PATH_ORDER               = self::SECTION_IMPORT . '/order';
+    const PATH_SHIPPING_TITLE      = self::PATH_ORDER . '/shipping_title';
+    const PATH_SEND_NEW_ORDER_MAIL = self::PATH_ORDER . '/send_new_order_mail';
+    const PATH_NEW_ORDER_STATUS    = 'payment/shopgate/order_status';
 
     /** @var CustomerSetter */
     private $customerSetter;
@@ -46,6 +52,8 @@ class Import implements ImportInterface
     private $order;
     /** @var OrderSetter */
     private $orderSetter;
+    /** @var ResourceConnection */
+    private $resourceConnection;
     /** @var array */
     private $addOrderMethods;
 
@@ -55,6 +63,7 @@ class Import implements ImportInterface
      * @param SgCoreInterface       $config
      * @param StoreManagerInterface $storeManager
      * @param Base                  $order
+     * @param ResourceConnection    $resourceConnection
      * @param array                 $addOrderMethods - methods loaded via DI.xml
      */
     public function __construct(
@@ -63,14 +72,16 @@ class Import implements ImportInterface
         SgCoreInterface $config,
         StoreManagerInterface $storeManager,
         Base $order,
+        ResourceConnection $resourceConnection,
         $addOrderMethods = []
     ) {
-        $this->customerSetter  = $customerSetter;
-        $this->config          = $config;
-        $this->storeManager    = $storeManager;
-        $this->order           = $order;
-        $this->orderSetter     = $orderSetter;
-        $this->addOrderMethods = $addOrderMethods;
+        $this->customerSetter     = $customerSetter;
+        $this->config             = $config;
+        $this->storeManager       = $storeManager;
+        $this->order              = $order;
+        $this->orderSetter        = $orderSetter;
+        $this->addOrderMethods    = $addOrderMethods;
+        $this->resourceConnection = $resourceConnection;
     }
 
     /**
@@ -106,7 +117,10 @@ class Import implements ImportInterface
     public function addOrder($order)
     {
         $this->order->loadArray($order->toArray());
+
+        //$this->resourceConnection->getConnection()->beginTransaction();
         $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
+        //$this->resourceConnection->getConnection()->commit();
 
         return [
             'external_order_id'     => $mageOrder->getId(),
