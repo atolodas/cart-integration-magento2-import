@@ -165,10 +165,8 @@ class Order
      */
     protected function setOrderStatusHistory()
     {
-        $this->mageOrder->addStatusHistoryComment(__('[SHOPGATE] Order added by Shopgate.')->getText(), false)
-                        ->setIsCustomerNotified(false);
         $this->mageOrder->addStatusHistoryComment(
-            __("[SHOPGATE] Shopgate order number: %s", $this->sgOrder->getOrderNumber())->getText(),
+            __('[SHOPGATE] Order added by Shopgate # %1', $this->sgOrder->getOrderNumber()),
             false
         )->setIsCustomerNotified(false);
     }
@@ -183,7 +181,7 @@ class Order
         if ($this->sgOrder->getIsPaid() && $this->mageOrder->getBaseTotalDue()) {
             $this->mageOrder->getPayment()->setShouldCloseParentTransaction(true);
             $this->mageOrder->getPayment()->registerCaptureNotification($this->sgOrder->getAmountComplete());
-            $this->mageOrder->addStatusHistoryComment(__('[SHOPGATE] Payment received.')->getText(), false)
+            $this->mageOrder->addStatusHistoryComment(__('[SHOPGATE] Payment received.'), false)
                             ->setIsCustomerNotified(false);
         }
     }
