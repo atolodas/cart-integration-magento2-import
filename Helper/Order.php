@@ -26,7 +26,6 @@
 namespace Shopgate\Import\Helper;
 
 use Magento\Framework\Api\SimpleDataObjectConverter;
-use Magento\Framework\Registry;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderNotifier;
@@ -53,8 +52,6 @@ class Order
     private $quoteMethods;
     /** @var CartManagementInterface */
     private $quoteManagement;
-    /** @var Registry */
-    private $registry;
     /** @var OrderRepository */
     private $orderRepository;
     /** @var MageOrder */
@@ -72,7 +69,6 @@ class Order
      * @param SgLoggerInterface        $log
      * @param Quote                    $quote
      * @param CartManagementInterface  $quoteManagement
-     * @param Registry                 $registry
      * @param OrderRepository          $orderRepository
      * @param MageOrder                $mageOrder
      * @param OrderRepositoryInterface $sgOrderRepository
@@ -86,7 +82,6 @@ class Order
         SgLoggerInterface $log,
         Quote $quote,
         CartManagementInterface $quoteManagement,
-        Registry $registry,
         OrderRepository $orderRepository,
         MageOrder $mageOrder,
         OrderRepositoryInterface $sgOrderRepository,
@@ -100,7 +95,6 @@ class Order
         $this->quote             = $quote;
         $this->quoteMethods      = $quoteMethods;
         $this->quoteManagement   = $quoteManagement;
-        $this->registry          = $registry;
         $this->orderRepository   = $orderRepository;
         $this->mageOrder         = $mageOrder;
         $this->sgOrderRepository = $sgOrderRepository;
@@ -141,7 +135,6 @@ class Order
 
         $this->sgOrderRepository->checkOrderExists($orderNumber, true);
         $this->log->debug('# Add shopgate order to Registry');
-        $this->registry->register('shopgate_order', $this->sgOrder);
 
         $mageQuote       = $this->quote->load($this->quoteMethods);
         $orderId         = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
