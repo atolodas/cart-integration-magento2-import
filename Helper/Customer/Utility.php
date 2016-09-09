@@ -39,9 +39,7 @@ class Utility extends \Shopgate\Base\Helper\Customer\Utility
 {
     /** @var AddressFactory */
     private $addressFactory;
-    /**
-     * @var CustomerHelper
-     */
+    /** @var CustomerHelper */
     private $customerHelper;
 
     /**

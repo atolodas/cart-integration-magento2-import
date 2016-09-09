@@ -207,4 +207,20 @@ class Order
             $this->orderNotifier->notify($this->mageOrder);
         }
     }
+
+    /**
+     * Adds custom fields to magento order & its address fields
+     */
+    protected function setCustomFields()
+    {
+        $this->mageOrder->addData($this->sgOrder->customFieldsToArray());
+        $billing = $this->mageOrder->getBillingAddress();
+        if ($billing) {
+            $billing->addData($this->sgOrder->getInvoiceAddress()->customFieldsToArray());
+        }
+        $shipping = $this->mageOrder->getShippingAddress();
+        if ($shipping) {
+            $shipping->addData($this->sgOrder->getDeliveryAddress()->customFieldsToArray());
+        }
+    }
 }

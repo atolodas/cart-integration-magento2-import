@@ -22,6 +22,7 @@
                 <item name="order_payment" xsi:type="string">order_payment</item>
                 <item name="order_state" xsi:type="string">order_state</item>
                 <item name="shipping_description" xsi:type="string">shipping_description</item>
+                <item name="custom_fields" xsi:type="string">custom_fields</item>
                 <item name="order_notification" xsi:type="string">order_notification</item>
                 <item name="end_add" xsi:type="string">end_add</item><!-- must be last -->
             </argument>
