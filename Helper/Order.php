@@ -27,6 +27,7 @@ namespace Shopgate\Import\Helper;
 
 use Magento\Framework\Api\SimpleDataObjectConverter;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Quote\Model\QuoteRepository;
 use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderNotifier;
 use Magento\Sales\Model\OrderRepository;
@@ -62,6 +63,10 @@ class Order
     private $config;
     /** @var OrderNotifier */
     private $orderNotifier;
+    /**
+     * @var QuoteRepository
+     */
+    private $quoteRepository;
 
     /**
      * @param Utility                  $utility
@@ -74,6 +79,7 @@ class Order
      * @param OrderRepositoryInterface $sgOrderRepository
      * @param CoreInterface            $config
      * @param OrderNotifier            $orderNotifier
+     * @param QuoteRepository          $quoteRepository
      * @param array                    $quoteMethods
      */
     public function __construct(
@@ -87,6 +93,7 @@ class Order
         OrderRepositoryInterface $sgOrderRepository,
         CoreInterface $config,
         OrderNotifier $orderNotifier,
+        QuoteRepository $quoteRepository,
         array $quoteMethods = []
     ) {
         $this->utility           = $utility;
@@ -100,6 +107,7 @@ class Order
         $this->sgOrderRepository = $sgOrderRepository;
         $this->config            = $config;
         $this->orderNotifier     = $orderNotifier;
+        $this->quoteRepository   = $quoteRepository;
     }
 
     /**
@@ -137,6 +145,8 @@ class Order
         $this->log->debug('# Add shopgate order to Registry');
 
         $mageQuote       = $this->quote->load($this->quoteMethods);
+        $mageQuote->setData('totals_collected_flag', false);
+        $this->quoteRepository->save($mageQuote);
         $orderId         = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
         $this->mageOrder = $this->orderRepository->get($orderId);
     }
