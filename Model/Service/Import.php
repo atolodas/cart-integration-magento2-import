@@ -28,6 +28,7 @@ namespace Shopgate\Import\Model\Service;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Store\Model\StoreManagerInterface;
 use Shopgate\Base\Api\Config\SgCoreInterface;
+use Shopgate\Base\Api\OrderRepositoryInterface;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Import\Api\ImportInterface;
 use Shopgate\Import\Helper\Customer\Setter as CustomerSetter;
@@ -53,16 +54,19 @@ class Import implements ImportInterface
     private $addOrderMethods;
     /** @var array */
     private $updateOrderMethods;
+    /** @var OrderRepositoryInterface */
+    private $sgOrderRepository;
 
     /**
-     * @param CustomerSetter        $customerSetter
-     * @param OrderSetter           $orderSetter
-     * @param SgCoreInterface       $config
-     * @param StoreManagerInterface $storeManager
-     * @param Base                  $order
-     * @param ResourceConnection    $resourceConnection
-     * @param array                 $addOrderMethods - methods loaded via DI.xml
-     * @param array                 $updateOrderMethods - methods loaded via DI.xml
+     * @param CustomerSetter           $customerSetter
+     * @param OrderSetter              $orderSetter
+     * @param SgCoreInterface          $config
+     * @param StoreManagerInterface    $storeManager
+     * @param Base                     $order
+     * @param ResourceConnection       $resourceConnection
+     * @param OrderRepositoryInterface $sgOrderRepository
+     * @param array                    $addOrderMethods    - methods loaded via DI.xml
+     * @param array                    $updateOrderMethods - methods loaded via DI.xml
      */
     public function __construct(
         CustomerSetter $customerSetter,
@@ -71,6 +75,7 @@ class Import implements ImportInterface
         StoreManagerInterface $storeManager,
         Base $order,
         ResourceConnection $resourceConnection,
+        OrderRepositoryInterface $sgOrderRepository,
         $addOrderMethods = [],
         $updateOrderMethods = []
     ) {
@@ -82,6 +87,7 @@ class Import implements ImportInterface
         $this->addOrderMethods    = $addOrderMethods;
         $this->resourceConnection = $resourceConnection;
         $this->updateOrderMethods = $updateOrderMethods;
+        $this->sgOrderRepository  = $sgOrderRepository;
     }
 
     /**
@@ -120,8 +126,14 @@ class Import implements ImportInterface
 
         $connection = $this->resourceConnection->getConnection();
         $connection->beginTransaction();
-        $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
-        $connection->commit();
+
+        try {
+            $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
+            $connection->commit();
+            $this->sgOrderRepository->createAndSave($mageOrder->getId());
+        } catch (\Exception $e) {
+            $connection->rollBack();
+        }
 
         return [
             'external_order_id'     => $mageOrder->getId(),
