@@ -28,11 +28,13 @@ namespace Shopgate\Import\Helper;
 use Magento\Framework\Api\SimpleDataObjectConverter;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Model\QuoteRepository;
+use Magento\Sales\Model\Convert;
 use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderNotifier;
 use Magento\Sales\Model\OrderRepository;
 use Shopgate\Base\Api\Config\CoreInterface;
 use Shopgate\Base\Api\OrderRepositoryInterface;
+use Shopgate\Base\Model\Shopgate;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
 use Shopgate\Import\Helper\Order\Utility;
@@ -63,6 +65,10 @@ class Order
     private $config;
     /** @var OrderNotifier */
     private $orderNotifier;
+    /** @var Shopgate\Order */
+    private $localSgOrder;
+    /** @var Convert\Order */
+    private $orderConverter;
     /**
      * @var QuoteRepository
      */
@@ -80,6 +86,8 @@ class Order
      * @param CoreInterface            $config
      * @param OrderNotifier            $orderNotifier
      * @param QuoteRepository          $quoteRepository
+     * @param Shopgate\Order           $localSgOrder
+     * @param Convert\Order            $orderConverter
      * @param array                    $quoteMethods
      */
     public function __construct(
@@ -94,6 +102,8 @@ class Order
         CoreInterface $config,
         OrderNotifier $orderNotifier,
         QuoteRepository $quoteRepository,
+        Shopgate\Order $localSgOrder,
+        Convert\Order $orderConverter,
         array $quoteMethods = []
     ) {
         $this->utility           = $utility;
@@ -108,6 +118,8 @@ class Order
         $this->config            = $config;
         $this->orderNotifier     = $orderNotifier;
         $this->quoteRepository   = $quoteRepository;
+        $this->localSgOrder      = $localSgOrder;
+        $this->orderConverter    = $orderConverter;
     }
 
     /**
@@ -142,9 +154,8 @@ class Order
         $this->log->debug('## Order-Number: ' . $orderNumber);
 
         $this->sgOrderRepository->checkOrderExists($orderNumber, true);
-        $this->log->debug('# Add shopgate order to Registry');
 
-        $mageQuote       = $this->quote->load($this->quoteMethods);
+        $mageQuote = $this->quote->load($this->quoteMethods);
         $mageQuote->setData('totals_collected_flag', false);
         $this->quoteRepository->save($mageQuote);
         $orderId         = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
@@ -158,6 +169,85 @@ class Order
     {
         $this->orderRepository->save($this->mageOrder);
         $this->sgOrderRepository->createAndSave($this->mageOrder->getId());
+    }
+
+    /**
+     * Updates the order
+     *
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     * @throws \ShopgateLibraryException
+     */
+    public function setStartUpdate()
+    {
+        $orderNumber = $this->sgOrder->getOrderNumber();
+        $this->log->debug('## Start updating Order');
+        $this->log->debug('## Order-Number: ' . $orderNumber);
+        $this->localSgOrder = $this->sgOrderRepository->checkOrderExists($orderNumber);
+        if (!$this->localSgOrder->getShopgateOrderId()) {
+            throw new \ShopgateLibraryException(\ShopgateLibraryException::PLUGIN_ORDER_NOT_FOUND);
+        }
+
+        $this->mageOrder = $this->orderRepository->get($this->localSgOrder->getOrderId());
+    }
+
+    /**
+     * Executes after order is fully loaded and updated
+     */
+    public function setEndUpdate()
+    {
+        $this->mageOrder->addStatusHistoryComment(__('[SHOPGATE] Order updated by Shopgate.'), false)
+                        ->setIsCustomerNotified(false);
+
+        $this->orderRepository->save($this->mageOrder);
+        $this->sgOrderRepository->update($this->localSgOrder);
+    }
+
+    /**
+     * Checks if payment should be updated for order
+     */
+    protected function setUpdatePayment()
+    {
+        if ((bool)$this->sgOrder->getUpdatePayment()) {
+            $this->log->debug('# Update payment');
+            $this->setOrderPayment();
+            $this->log->debug('# Update payment successful');
+        }
+    }
+
+    /**
+     * Checks if shipments should be updated for order
+     */
+    protected function setOrderShipment()
+    {
+        if ((bool)$this->sgOrder->getUpdateShipping()) {
+
+            $this->log->debug('# Update shipping');
+            if ($this->mageOrder->canShip()
+                && !$this->sgOrder->getIsShippingCompleted()
+                && !$this->localSgOrder->getIsShippingBlocked()
+            ) {
+                $shipment = $this->orderConverter->toShipment($this->mageOrder);
+
+                foreach ($this->mageOrder->getAllItems() as $orderItem) {
+                    if (!$orderItem->getQtyToShip() || $orderItem->getIsVirtual()) {
+                        continue;
+                    }
+
+                    $qtyShipped   = $orderItem->getQtyToShip();
+                    $shipmentItem = $this->orderConverter->itemToShipmentItem($orderItem)->setQty($qtyShipped);
+
+                    $shipment->addItem($shipmentItem);
+                }
+
+                // Register shipment
+                $shipment->register();
+                $shipment->getOrder()->setIsInProcess(true);
+
+                // Save created shipment and order
+                $shipment->save();
+                $shipment->getOrder()->save();
+            }
+        }
     }
 
     /**

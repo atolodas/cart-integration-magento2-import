@@ -25,7 +25,12 @@
                 <item name="order_notification" xsi:type="string">order_notification</item>
                 <item name="end_add" xsi:type="string">end_add</item><!-- must be last -->
             </argument>
-            <!-- Update order methods will be passed here as a second argument -->
+            <argument name="updateOrderMethods" xsi:type="array">
+                <item name="start_update" xsi:type="string">start_update</item><!-- must be first -->
+                <item name="update_payment" xsi:type="string">update_payment</item>
+                <item name="order_shipment" xsi:type="string">order_shipment</item>
+                <item name="end_update" xsi:type="string">end_update</item><!-- must be last -->
+            </argument>
         </arguments>
     </type>
 </config>

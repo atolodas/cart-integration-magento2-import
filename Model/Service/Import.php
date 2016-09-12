@@ -51,6 +51,8 @@ class Import implements ImportInterface
     private $resourceConnection;
     /** @var array */
     private $addOrderMethods;
+    /** @var array */
+    private $updateOrderMethods;
 
     /**
      * @param CustomerSetter        $customerSetter
@@ -60,6 +62,7 @@ class Import implements ImportInterface
      * @param Base                  $order
      * @param ResourceConnection    $resourceConnection
      * @param array                 $addOrderMethods - methods loaded via DI.xml
+     * @param array                 $updateOrderMethods - methods loaded via DI.xml
      */
     public function __construct(
         CustomerSetter $customerSetter,
@@ -68,7 +71,8 @@ class Import implements ImportInterface
         StoreManagerInterface $storeManager,
         Base $order,
         ResourceConnection $resourceConnection,
-        $addOrderMethods = []
+        $addOrderMethods = [],
+        $updateOrderMethods = []
     ) {
         $this->customerSetter     = $customerSetter;
         $this->config             = $config;
@@ -77,6 +81,7 @@ class Import implements ImportInterface
         $this->orderSetter        = $orderSetter;
         $this->addOrderMethods    = $addOrderMethods;
         $this->resourceConnection = $resourceConnection;
+        $this->updateOrderMethods = $updateOrderMethods;
     }
 
     /**
@@ -113,9 +118,28 @@ class Import implements ImportInterface
     {
         $this->order->loadArray($order->toArray());
 
-        //$this->resourceConnection->getConnection()->beginTransaction();
+        $connection = $this->resourceConnection->getConnection();
+        $connection->beginTransaction();
         $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
-        //$this->resourceConnection->getConnection()->commit();
+        $connection->commit();
+
+        return [
+            'external_order_id'     => $mageOrder->getId(),
+            'external_order_number' => $mageOrder->getIncrementId()
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function updateOrder($order)
+    {
+        $this->order->loadArray($order->toArray());
+
+        $connection = $this->resourceConnection->getConnection();
+        $connection->beginTransaction();
+        $mageOrder = $this->orderSetter->loadMethods($this->updateOrderMethods);
+        $connection->commit();
 
         return [
             'external_order_id'     => $mageOrder->getId(),
