@@ -28,7 +28,6 @@ namespace Shopgate\Import\Helper;
 use Magento\Framework\Api\SimpleDataObjectConverter;
 use Magento\Quote\Api\CartManagementInterface;
 use Magento\Quote\Model\QuoteRepository;
-use Magento\Sales\Model\Convert;
 use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderNotifier;
 use Magento\Sales\Model\OrderRepository;
@@ -37,6 +36,7 @@ use Shopgate\Base\Api\OrderRepositoryInterface;
 use Shopgate\Base\Model\Shopgate;
 use Shopgate\Base\Model\Shopgate\Extended\Base;
 use Shopgate\Base\Model\Utility\SgLoggerInterface;
+use Shopgate\Import\Helper\Order\Shipping;
 use Shopgate\Import\Helper\Order\Utility;
 use Shopgate\Import\Model\Service\Import as ImportService;
 
@@ -67,12 +67,10 @@ class Order
     private $orderNotifier;
     /** @var Shopgate\Order */
     private $localSgOrder;
-    /** @var Convert\Order */
-    private $orderConverter;
-    /**
-     * @var QuoteRepository
-     */
+    /** @var QuoteRepository */
     private $quoteRepository;
+    /** @var Shipping */
+    private $shippingHelper;
 
     /**
      * @param Utility                  $utility
@@ -87,7 +85,7 @@ class Order
      * @param OrderNotifier            $orderNotifier
      * @param QuoteRepository          $quoteRepository
      * @param Shopgate\Order           $localSgOrder
-     * @param Convert\Order            $orderConverter
+     * @param Shipping                 $shippingHelper
      * @param array                    $quoteMethods
      */
     public function __construct(
@@ -103,7 +101,7 @@ class Order
         OrderNotifier $orderNotifier,
         QuoteRepository $quoteRepository,
         Shopgate\Order $localSgOrder,
-        Convert\Order $orderConverter,
+        Shipping $shippingHelper,
         array $quoteMethods = []
     ) {
         $this->utility           = $utility;
@@ -119,7 +117,7 @@ class Order
         $this->orderNotifier     = $orderNotifier;
         $this->quoteRepository   = $quoteRepository;
         $this->localSgOrder      = $localSgOrder;
-        $this->orderConverter    = $orderConverter;
+        $this->shippingHelper    = $shippingHelper;
     }
 
     /**
@@ -147,10 +145,9 @@ class Order
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \ShopgateLibraryException
      */
-    public function setStartAdd()
+    protected function setStartAdd()
     {
         $orderNumber = $this->sgOrder->getOrderNumber();
-        $this->log->debug('## Start to add new Order');
         $this->log->debug('## Order-Number: ' . $orderNumber);
 
         $this->sgOrderRepository->checkOrderExists($orderNumber, true);
@@ -165,7 +162,7 @@ class Order
     /**
      * Executes after order is fully loaded
      */
-    public function setEndAdd()
+    protected function setEndAdd()
     {
         $this->orderRepository->save($this->mageOrder);
         $this->sgOrderRepository->createAndSave($this->mageOrder->getId());
@@ -177,10 +174,9 @@ class Order
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      * @throws \ShopgateLibraryException
      */
-    public function setStartUpdate()
+    protected function setStartUpdate()
     {
         $orderNumber = $this->sgOrder->getOrderNumber();
-        $this->log->debug('## Start updating Order');
         $this->log->debug('## Order-Number: ' . $orderNumber);
         $this->localSgOrder = $this->sgOrderRepository->checkOrderExists($orderNumber);
         if (!$this->localSgOrder->getShopgateOrderId()) {
@@ -207,10 +203,9 @@ class Order
      */
     protected function setUpdatePayment()
     {
-        if ((bool)$this->sgOrder->getUpdatePayment()) {
-            $this->log->debug('# Update payment');
+        if ((bool) $this->sgOrder->getUpdatePayment()) {
+            $this->log->debug('# Payment requires an update');
             $this->setOrderPayment();
-            $this->log->debug('# Update payment successful');
         }
     }
 
@@ -219,34 +214,13 @@ class Order
      */
     protected function setOrderShipment()
     {
-        if ((bool)$this->sgOrder->getUpdateShipping()) {
-
-            $this->log->debug('# Update shipping');
-            if ($this->mageOrder->canShip()
-                && !$this->sgOrder->getIsShippingCompleted()
-                && !$this->localSgOrder->getIsShippingBlocked()
-            ) {
-                $shipment = $this->orderConverter->toShipment($this->mageOrder);
-
-                foreach ($this->mageOrder->getAllItems() as $orderItem) {
-                    if (!$orderItem->getQtyToShip() || $orderItem->getIsVirtual()) {
-                        continue;
-                    }
-
-                    $qtyShipped   = $orderItem->getQtyToShip();
-                    $shipmentItem = $this->orderConverter->itemToShipmentItem($orderItem)->setQty($qtyShipped);
-
-                    $shipment->addItem($shipmentItem);
-                }
-
-                // Register shipment
-                $shipment->register();
-                $shipment->getOrder()->setIsInProcess(true);
-
-                // Save created shipment and order
-                $shipment->save();
-                $shipment->getOrder()->save();
-            }
+        if ((bool) $this->sgOrder->getUpdateShipping()
+            && !$this->sgOrder->getIsShippingCompleted()
+            && $this->mageOrder->canShip()
+            && !$this->localSgOrder->getIsShippingBlocked()
+        ) {
+            $this->log->debug('# Shipping requires an update');
+            $this->shippingHelper->update($this->mageOrder);
         }
     }
 

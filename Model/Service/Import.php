@@ -129,10 +129,18 @@ class Import implements ImportInterface
 
         try {
             $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
-            $connection->commit();
             $this->sgOrderRepository->createAndSave($mageOrder->getId());
+            $connection->commit();
+        } catch (\ShopgateLibraryException $e) {
+            $connection->rollBack();
+            throw $e;
         } catch (\Exception $e) {
             $connection->rollBack();
+            throw new \ShopgateLibraryException(
+                \ShopgateLibraryException::UNKNOWN_ERROR_CODE,
+                "{$e->getMessage()}\n{$e->getTraceAsString()}",
+                true
+            );
         }
 
         return [
@@ -150,8 +158,21 @@ class Import implements ImportInterface
 
         $connection = $this->resourceConnection->getConnection();
         $connection->beginTransaction();
-        $mageOrder = $this->orderSetter->loadMethods($this->updateOrderMethods);
-        $connection->commit();
+
+        try {
+            $mageOrder = $this->orderSetter->loadMethods($this->updateOrderMethods);
+            $connection->commit();
+        } catch (\ShopgateLibraryException $e) {
+            $connection->rollBack();
+            throw $e;
+        } catch (\Exception $e) {
+            $connection->rollBack();
+            throw new \ShopgateLibraryException(
+                \ShopgateLibraryException::UNKNOWN_ERROR_CODE,
+                "{$e->getMessage()}\n{$e->getTraceAsString()}",
+                true
+            );
+        }
 
         return [
             'external_order_id'     => $mageOrder->getId(),
