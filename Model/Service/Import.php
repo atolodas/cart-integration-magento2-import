@@ -129,8 +129,8 @@ class Import implements ImportInterface
 
         try {
             $mageOrder = $this->orderSetter->loadMethods($this->addOrderMethods);
-            $this->sgOrderRepository->createAndSave($mageOrder->getId());
             $connection->commit();
+            $this->sgOrderRepository->createAndSave($mageOrder->getId());
         } catch (\ShopgateLibraryException $e) {
             $connection->rollBack();
             throw $e;

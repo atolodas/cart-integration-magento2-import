@@ -165,7 +165,6 @@ class Order
     protected function setEndAdd()
     {
         $this->orderRepository->save($this->mageOrder);
-        $this->sgOrderRepository->createAndSave($this->mageOrder->getId());
     }
 
     /**
