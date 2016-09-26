@@ -26,7 +26,9 @@
 namespace Shopgate\Import\Helper;
 
 use Magento\Framework\Api\SimpleDataObjectConverter;
+use Magento\Framework\Event\ManagerInterface;
 use Magento\Quote\Api\CartManagementInterface;
+use Magento\Quote\Model\QuoteManagement;
 use Magento\Quote\Model\QuoteRepository;
 use Magento\Sales\Model\Order as MageOrder;
 use Magento\Sales\Model\OrderNotifier;
@@ -53,7 +55,7 @@ class Order
     private $quote;
     /** @var array */
     private $quoteMethods;
-    /** @var CartManagementInterface */
+    /** @var CartManagementInterface | QuoteManagement */
     private $quoteManagement;
     /** @var OrderRepository */
     private $orderRepository;
@@ -71,6 +73,8 @@ class Order
     private $quoteRepository;
     /** @var Shipping */
     private $shippingHelper;
+    /** @var ManagerInterface */
+    private $eventManager;
 
     /**
      * @param Utility                  $utility
@@ -86,6 +90,7 @@ class Order
      * @param QuoteRepository          $quoteRepository
      * @param Shopgate\Order           $localSgOrder
      * @param Shipping                 $shippingHelper
+     * @param ManagerInterface         $eventManager
      * @param array                    $quoteMethods
      */
     public function __construct(
@@ -102,6 +107,7 @@ class Order
         QuoteRepository $quoteRepository,
         Shopgate\Order $localSgOrder,
         Shipping $shippingHelper,
+        ManagerInterface $eventManager,
         array $quoteMethods = []
     ) {
         $this->utility           = $utility;
@@ -118,6 +124,7 @@ class Order
         $this->quoteRepository   = $quoteRepository;
         $this->localSgOrder      = $localSgOrder;
         $this->shippingHelper    = $shippingHelper;
+        $this->eventManager      = $eventManager;
     }
 
     /**
@@ -152,11 +159,13 @@ class Order
 
         $this->sgOrderRepository->checkOrderExists($orderNumber, true);
 
-        $mageQuote = $this->quote->load($this->quoteMethods);
-        $mageQuote->setData('totals_collected_flag', false);
-        $this->quoteRepository->save($mageQuote);
-        $orderId         = $this->quoteManagement->placeOrder($mageQuote->getEntityId());
-        $this->mageOrder = $this->orderRepository->get($orderId);
+        $quote = $this->quote->load($this->quoteMethods);
+        $quote->setData('totals_collected_flag', false);
+        $this->quoteRepository->save($quote);
+
+        $this->eventManager->dispatch('checkout_submit_before', ['quote' => $quote]);
+        $this->mageOrder = $this->quoteManagement->submit($quote);
+        $this->eventManager->dispatch('checkout_submit_all_after', ['order' => $this->mageOrder, 'quote' => $quote]);
     }
 
     /**
