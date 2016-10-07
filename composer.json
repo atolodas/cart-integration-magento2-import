@@ -3,19 +3,10 @@
   "description": "Shopgate import module for Magento 2, handles all import functionality",
   "require": {
     "php": "~5.6.0|7.0.2|~7.0.6",
-    "magento/magento-composer-installer": "*",
     "shopgate/base": "*"
   },
   "type": "magento2-module",
   "version": "2.9.2",
-  "extra": {
-    "map": [
-      [
-        "*",
-        "Shopgate/Import"
-      ]
-    ]
-  },
   "authors": [
     {
       "name": "Konstantin Kiritsenko"
