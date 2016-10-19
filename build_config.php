@@ -25,7 +25,7 @@ $buildConfig = [
     'exclude_files'           => [
         '0' => '.git',
         '1' => 'build_config.php',
-        '2' => 'create _tag.xml',
+        '2' => 'create_tag.xml',
         '3' => 'create_zip.xml',
         '4' => 'build.properties',
     ],
