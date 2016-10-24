@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Shopgate GmbH
  *
@@ -22,7 +23,7 @@
  * @author Shopgate GmbH <interfaces@shopgate.com>
  */
 
-namespace Shopgate\Import\Test\Integration\Helper;
+namespace Shopgate\Import\Test\Integration\Model\Service;
 
 use Magento\Customer\Model\CustomerFactory;
 use Magento\Store\Model\ScopeInterface;
@@ -31,10 +32,7 @@ use ShopgateAddress;
 use ShopgateCustomer;
 use ShopgateOrderCustomField;
 
-/**
- * @coversDefaultClass Shopgate\Export\Helper\Customer
- */
-class CustomerTest extends \PHPUnit_Framework_TestCase
+class ImportTest extends \PHPUnit_Framework_TestCase
 {
     const CUSTOMER_EMAIL = 'example@me.com';
     const SHOP_NUMBER    = '12345';
@@ -64,7 +62,6 @@ class CustomerTest extends \PHPUnit_Framework_TestCase
      * Test that we can create a customer with addresses
      *
      * @covers ::registerCustomer
-     * @covers Shopgate\Import\Helper\Import::registerCustomer
      */
     public function testRegisterCustomer()
     {
