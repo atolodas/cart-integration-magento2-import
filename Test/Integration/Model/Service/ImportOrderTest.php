@@ -25,6 +25,7 @@
 namespace Shopgate\Import\Test\Integration\Model\Service;
 
 use Shopgate\Base\Test\Bootstrap;
+use Shopgate\Base\Test\Integration\SgDataManager;
 
 /**
  * @coversDefaultClass Shopgate\Import\Model\Service\Import
@@ -39,6 +40,8 @@ class ImportOrderTest extends \PHPUnit_Framework_TestCase
     protected $orderHolder = [];
     /** @var \Magento\Sales\Api\OrderRepositoryInterface */
     protected $orderRepository;
+    /** @var SgDataManager */
+    protected $dataManager;
 
     public function setUp()
     {
@@ -68,112 +71,24 @@ class ImportOrderTest extends \PHPUnit_Framework_TestCase
      */
     public function simpleOrderProvider()
     {
+        $dataManager = new SgDataManager();
         return [
-            'simple order ' => [
+            'config order' => [
                 new \ShopgateOrder(
                     [
-                        'order_number'             => rand(1000000000, 9999999999),
-                        'is_paid'                  => 0,
-                        'payment_infos'            =>
-                            [
-                                'shopgate_payment_name' => 'Vorkasse (Eigene Abwicklung)',
-                                'purpose'               => 'SG1501511499',
-                            ],
-                        'external_customer_number' => null,
-                        'external_customer_id'     => null,
-                        'mail'                     => 'felice5392@googlemail.com',
-                        'shipping_group'           => 'DHL',
-                        'shipping_type'            => 'MANUAL',
-                        'shipping_infos'           => [
-                            'name'         => 'DHL Deutschland',
-                            'display_name' => 'DHL Pakte gogreen',
-                            'description'  => '',
-                            'amount'       => '4.90',
-                            'weight'       => 0,
-                            'api_response' => null,
+                        'order_number'        => rand(1000000000, 9999999999),
+                        'is_paid'             => 0,
+                        'mail'                => 'shopgate@shopgate.com',
+                        'amount_shop_payment' => '5.00',
+                        'amount_complete'     => '149.85',
+                        'shipping_infos'      => [
+                            'amount' => '4.90',
                         ],
-                        'custom_fields'            => [
-                            [
-                                'label'               => 'Test Custom Field',
-                                'internal_field_name' => 'test_field',
-                                'value'               => 'test field value',
-                            ],
-                        ],
-                        'payment_method'           => 'PREPAY',
-                        'payment_group'            => 'PREPAY',
-                        'amount_items'             => '139.95',
-                        'amount_shipping'          => '4.90',
-                        'amount_shop_payment'      => '5.00',
-                        'payment_tax_percent'      => '19.00',
-                        'amount_shopgate_payment'  => '0.00',
-                        'amount_complete'          => '149.85',
-                        'currency'                 => 'EUR',
-                        'invoice_address'          => [
-                            'is_invoice_address'  => true,
-                            'is_delivery_address' => false,
-                            'first_name'          => 'Bank',
-                            'last_name'           => 'Payment',
-                            'gender'              => 'f',
-                            'birthday'            => null,
-                            'company'             => null,
-                            'street_1'            => 'Zevener Straße 8',
-                            'street_2'            => null,
-                            'zipcode'             => '27404',
-                            'city'                => 'Frankenbostel',
-                            'country'             => 'DE',
-                            'state'               => null,
-                            'phone'               => null,
-                            'mobile'              => null,
-                            'mail'                => null,
-                            'custom_fields'       => [
-                                [
-                                    'label'               => 'Is house?',
-                                    'internal_field_name' => 'is_house',
-                                    'value'               => 0,
-                                ]
-                            ],
-                        ],
-                        'delivery_address'         => [
-                            'id'                  => null,
-                            'is_invoice_address'  => false,
-                            'is_delivery_address' => true,
-                            'first_name'          => 'Bank',
-                            'last_name'           => 'Payment',
-                            'gender'              => 'f',
-                            'birthday'            => null,
-                            'company'             => null,
-                            'street_1'            => 'Zevener Straße 8',
-                            'street_2'            => null,
-                            'zipcode'             => '27404',
-                            'city'                => 'Frankenbostel',
-                            'country'             => 'DE',
-                            'state'               => null,
-                            'phone'               => null,
-                            'mobile'              => null,
-                            'mail'                => null,
-                            'custom_fields'       => [
-                                [
-                                    'label'               => 'Is house?',
-                                    'internal_field_name' => 'is_house',
-                                    'value'               => 1,
-                                ]
-                            ],
-                        ],
-                        'external_coupons'         =>
-                            [
-                            ],
-                        'shopgate_coupons'         =>
-                            [],
-                        'items'                    =>
-                            [
-                                [
-                                    'quantity'            => 1,
-                                    'internal_order_info' => '{"product_id":2, "item_type":"simple"}',
-                                    'options'             => [],
-                                    'inputs'              => [],
-                                    'attributes'          => [],
-                                ]
-                            ]
+                        'invoice_address'     => $dataManager->getGermanAddress(),
+                        'delivery_address'    => $dataManager->getGermanAddress(false),
+                        'external_coupons'    => [],
+                        'shopgate_coupons'    => [],
+                        'items'               => [$dataManager->getConfigurableProduct()]
                     ]
                 )
             ]
