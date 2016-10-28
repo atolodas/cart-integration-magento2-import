@@ -27,9 +27,11 @@ namespace Shopgate\Import\Helper;
 
 use Magento\Catalog\Model\Product as MageProduct;
 use Magento\Framework\DataObject;
+use Magento\Quote\Api\Data\PaymentInterface;
 use Magento\Quote\Model\Quote as MageQuote;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Tax\Helper\Data as Tax;
+use Shopgate\Base\Model\Payment\Shopgate;
 
 class Quote extends \Shopgate\Base\Helper\Quote
 {
@@ -63,8 +65,8 @@ class Quote extends \Shopgate\Base\Helper\Quote
     protected function setShipping()
     {
         $this->quote->getShippingAddress()
-            ->setShippingMethod('shopgate_fix')
-            ->setCollectShippingRates(true);
+                    ->setShippingMethod('shopgate_fix')
+                    ->setCollectShippingRates(true);
     }
 
     /**
@@ -72,7 +74,14 @@ class Quote extends \Shopgate\Base\Helper\Quote
      */
     protected function setPayment()
     {
-        $this->quote->getPayment()->importData(['method' => 'shopgate']);
+        $this->quote->getPayment()->importData(
+            [
+                'method'                              => 'shopgate',
+                PaymentInterface::KEY_ADDITIONAL_DATA => [
+                    Shopgate::SG_DATA_OBJECT_KEY => $this->sgBase
+                ]
+            ]
+        );
         $this->quote->getPayment()->setParentTransactionId($this->sgBase->getPaymentTransactionNumber());
     }
 }
