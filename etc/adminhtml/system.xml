@@ -9,11 +9,6 @@
             <group id="order" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1"
                    showInStore="1">
                 <label>Order</label>
-                <field id="shipping_title" translate="label comment" type="text" sortOrder="10" showInDefault="1"
-                       showInWebsite="1" showInStore="1">
-                    <label>Shopgate Shipping Carrier Title</label>
-                    <comment>Note: Will be visible in Customer Account and transactional Mails!</comment>
-                </field>
                 <field id="send_new_order_mail" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1"
                        showInStore="1">
                     <label>Send email to customer on new order</label>
