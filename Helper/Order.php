@@ -273,9 +273,11 @@ class Order
      */
     protected function setShippingDescription()
     {
-        $this->mageOrder->setShippingDescription(
-            $this->config->getConfigByPath(ImportService::PATH_SHIPPING_TITLE)->getValue()
-        );
+        $shippingInfos = $this->sgOrder->getShippingInfos();
+        $shippingTitle = $shippingInfos->getDisplayName();
+
+        $this->mageOrder->setShippingDescription($shippingTitle);
+
     }
 
     /**
