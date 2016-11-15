@@ -52,17 +52,25 @@ class ImportOrderTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @param \ShopgateOrder $order
+     * Test that all 3 product types get inserted
+     * into the order and that order is created
+     * correctly
      *
-     * @covers ::addOrder
+     * @param \ShopgateOrder $order
      *
      * @dataProvider simpleOrderProvider
      * @throws \ShopgateLibraryException
      */
-    public function testSimpleOrderImport(\ShopgateOrder $order)
+    public function testOrderImport(\ShopgateOrder $order)
     {
         $result = $this->importClass->addOrder($order);
+        /** @var \Shopgate\Import\Helper\Order $sgOrder */
+        $sgOrder = Bootstrap::getObjectManager()->get('Shopgate\Import\Helper\Order');
+        /** @var \Magento\Sales\Model\Order $order */
+        $order = $sgOrder->loadMethods([]);
+
         $this->assertNotEmpty($result);
+        $this->assertCount(3, $order->getAllVisibleItems());
         $this->orderHolder[] = $result;
     }
 
@@ -72,8 +80,9 @@ class ImportOrderTest extends \PHPUnit_Framework_TestCase
     public function simpleOrderProvider()
     {
         $dataManager = new SgDataManager();
+
         return [
-            'config order' => [
+            'simple order ' => [
                 new \ShopgateOrder(
                     [
                         'order_number'        => rand(1000000000, 9999999999),
@@ -88,10 +97,14 @@ class ImportOrderTest extends \PHPUnit_Framework_TestCase
                         'delivery_address'    => $dataManager->getGermanAddress(false),
                         'external_coupons'    => [],
                         'shopgate_coupons'    => [],
-                        'items'               => [$dataManager->getConfigurableProduct()]
+                        'items'               => [
+                            $dataManager->getSimpleProduct(),
+                            $dataManager->getConfigurableProduct(),
+                            $dataManager->getGroupedProduct()
+                        ]
                     ]
                 )
-            ]
+            ],
         ];
     }
 
