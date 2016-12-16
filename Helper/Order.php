@@ -161,7 +161,6 @@ class Order
 
         $quote = $this->quote->load($this->quoteMethods);
         $quote->setData('totals_collected_flag', false);
-        $this->quoteRepository->save($quote);
 
         $this->eventManager->dispatch('checkout_submit_before', ['quote' => $quote]);
         $this->mageOrder = $this->quoteManagement->submit($quote);
