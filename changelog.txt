@@ -1,3 +1,6 @@
+'''Version 2.9.2'''
+* Fixed missing price for configurable product that was added last to cart
+
 '''Version 2.9.1'''
 * The shipping description will now be fetched from the Shopgate Order on import
 
