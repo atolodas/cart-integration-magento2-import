@@ -32,6 +32,9 @@ use ShopgateAddress;
 use ShopgateCustomer;
 use ShopgateOrderCustomField;
 
+/**
+ * @coversDefaultClass \Shopgate\Import\Model\Service\Import
+ */
 class ImportTest extends \PHPUnit_Framework_TestCase
 {
     const CUSTOMER_EMAIL = 'example@me.com';

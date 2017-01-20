@@ -82,7 +82,7 @@ class ImportOrderTest extends \PHPUnit_Framework_TestCase
         $dataManager = new SgDataManager();
 
         return [
-            'simple order ' => [
+            'simple order' => [
                 new \ShopgateOrder(
                     [
                         'order_number'        => rand(1000000000, 9999999999),
